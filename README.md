@@ -405,4 +405,8 @@ https://github.com/Priyanka-172000/Foodcorner-Food-Delivery-Website
 
 ## License
 
-This project is created for educational and portfolio purposes.
+## 📄 Project Usage
+
+This project was developed for educational, learning, and portfolio purposes.
+
+If you are interested in the project, want to discuss the implementation, collaborate, or have any queries, feel free to connect with me through GitHub or LinkedIn.
