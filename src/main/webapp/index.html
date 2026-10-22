@@ -1,0 +1,798 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <title>Foodcorner | Fresh. Fast. Delicious.</title>
+
+    <style>
+
+        /* ==============================
+           RESET
+        ============================== */
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            background: #ffffff;
+            color: #222222;
+        }
+
+        /* ==============================
+           NAVBAR
+        ============================== */
+
+        .navbar {
+            position: absolute;
+            top: 0;
+            left: 0;
+
+            width: 100%;
+
+            height: 75px;
+
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+
+            padding: 0 7%;
+
+            z-index: 10;
+
+            background: rgba(0, 0, 0, 0.25);
+
+            backdrop-filter: blur(5px);
+        }
+
+        .logo {
+            font-size: 28px;
+            font-weight: 800;
+            color: white;
+            text-decoration: none;
+        }
+
+        .logo span {
+            color: #ff4d00;
+        }
+
+        .nav-links {
+            display: flex;
+            align-items: center;
+            gap: 30px;
+        }
+
+        .nav-links a {
+            color: white;
+            text-decoration: none;
+            font-size: 15px;
+            font-weight: 600;
+
+            transition: 0.3s;
+        }
+
+        .nav-links a:hover {
+            color: #ff4d00;
+        }
+
+        .login-btn {
+            padding: 9px 19px;
+
+            border: 1px solid white;
+            border-radius: 6px;
+        }
+
+        .register-btn {
+            padding: 10px 20px;
+
+            background: #ff4d00;
+
+            border-radius: 6px;
+
+            color: white !important;
+        }
+
+        .register-btn:hover {
+            background: #e64400;
+        }
+
+        /* ==============================
+           HERO SECTION
+        ============================== */
+
+        .hero {
+            position: relative;
+
+            width: 100%;
+            height: 100vh;
+
+            min-height: 600px;
+
+            overflow: hidden;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* VIDEO */
+
+        .hero-video {
+            position: absolute;
+
+            top: 50%;
+            left: 50%;
+
+            width: 100%;
+            height: 100%;
+
+            min-width: 100%;
+            min-height: 100%;
+
+            object-fit: cover;
+
+            transform: translate(-50%, -50%);
+
+            z-index: 1;
+        }
+
+        /* DARK LAYER ABOVE VIDEO */
+
+        .hero-overlay {
+            position: absolute;
+
+            top: 0;
+            left: 0;
+
+            width: 100%;
+            height: 100%;
+
+            background:
+                linear-gradient(
+                    rgba(0, 0, 0, 0.45),
+                    rgba(0, 0, 0, 0.60)
+                );
+
+            z-index: 2;
+        }
+
+        /* HERO CONTENT */
+
+        .hero-content {
+            position: relative;
+
+            z-index: 3;
+
+            max-width: 900px;
+
+            padding: 30px;
+
+            text-align: center;
+
+            color: white;
+        }
+
+        .hero-small-text {
+            display: inline-block;
+
+            margin-bottom: 18px;
+
+            padding: 8px 18px;
+
+            border-radius: 30px;
+
+            background: rgba(255, 255, 255, 0.14);
+
+            border: 1px solid rgba(255, 255, 255, 0.30);
+
+            font-size: 14px;
+
+            letter-spacing: 1px;
+        }
+
+        .hero-content h1 {
+            font-size: 78px;
+
+            font-weight: 800;
+
+            margin-bottom: 10px;
+
+            line-height: 1.05;
+        }
+
+        .hero-content h1 span {
+            color: #ff4d00;
+        }
+
+        .hero-content h2 {
+            font-size: 38px;
+
+            font-weight: 600;
+
+            margin-bottom: 20px;
+        }
+
+        .hero-content p {
+            max-width: 680px;
+
+            margin: 0 auto 35px;
+
+            font-size: 18px;
+
+            line-height: 1.7;
+
+            color: #f1f1f1;
+        }
+
+        /* HERO BUTTONS */
+
+        .hero-buttons {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+
+            gap: 16px;
+
+            flex-wrap: wrap;
+        }
+
+        .primary-btn,
+        .secondary-btn {
+            display: inline-block;
+
+            padding: 15px 31px;
+
+            border-radius: 8px;
+
+            text-decoration: none;
+
+            font-size: 16px;
+            font-weight: 700;
+
+            transition: all 0.3s ease;
+        }
+
+        .primary-btn {
+            background: #ff4d00;
+            color: white;
+        }
+
+        .primary-btn:hover {
+            background: #e64400;
+
+            transform: translateY(-3px);
+        }
+
+        .secondary-btn {
+            background: rgba(255, 255, 255, 0.12);
+
+            color: white;
+
+            border: 1px solid rgba(255, 255, 255, 0.65);
+        }
+
+        .secondary-btn:hover {
+            background: white;
+            color: #222222;
+
+            transform: translateY(-3px);
+        }
+
+        /* ==============================
+           SCROLL INDICATOR
+        ============================== */
+
+        .scroll-down {
+            position: absolute;
+
+            bottom: 27px;
+            left: 50%;
+
+            transform: translateX(-50%);
+
+            z-index: 4;
+
+            color: white;
+
+            text-align: center;
+
+            font-size: 12px;
+        }
+
+        .scroll-arrow {
+            display: block;
+
+            margin-top: 7px;
+
+            font-size: 24px;
+
+            animation: moveDown 1.5s infinite;
+        }
+
+        @keyframes moveDown {
+
+            0% {
+                transform: translateY(0);
+            }
+
+            50% {
+                transform: translateY(7px);
+            }
+
+            100% {
+                transform: translateY(0);
+            }
+        }
+
+        /* ==============================
+           INTRO SECTION
+        ============================== */
+
+        .intro-section {
+            padding: 75px 8%;
+
+            text-align: center;
+
+            background: #fff8f4;
+        }
+
+        .intro-section h2 {
+            font-size: 38px;
+
+            margin-bottom: 12px;
+        }
+
+        .intro-section h2 span {
+            color: #ff4d00;
+        }
+
+        .intro-section > p {
+            max-width: 650px;
+
+            margin: 0 auto 50px;
+
+            color: #666666;
+
+            line-height: 1.7;
+
+            font-size: 16px;
+        }
+
+        .features {
+            max-width: 1050px;
+
+            margin: auto;
+
+            display: grid;
+
+            grid-template-columns: repeat(3, 1fr);
+
+            gap: 25px;
+        }
+
+        .feature-card {
+            background: white;
+
+            padding: 35px 25px;
+
+            border-radius: 14px;
+
+            box-shadow: 0 5px 25px rgba(0, 0, 0, 0.07);
+
+            transition: 0.3s;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-7px);
+        }
+
+        .feature-icon {
+            font-size: 42px;
+
+            margin-bottom: 17px;
+        }
+
+        .feature-card h3 {
+            margin-bottom: 10px;
+
+            font-size: 20px;
+        }
+
+        .feature-card p {
+            color: #666666;
+
+            line-height: 1.6;
+
+            font-size: 14px;
+        }
+
+        /* ==============================
+           CTA
+        ============================== */
+
+        .cta-section {
+            padding: 70px 20px;
+
+            text-align: center;
+
+            background: #ff4d00;
+
+            color: white;
+        }
+
+        .cta-section h2 {
+            font-size: 36px;
+
+            margin-bottom: 12px;
+        }
+
+        .cta-section p {
+            margin-bottom: 27px;
+
+            font-size: 16px;
+        }
+
+        .cta-section a {
+            display: inline-block;
+
+            padding: 14px 30px;
+
+            background: white;
+
+            color: #ff4d00;
+
+            border-radius: 8px;
+
+            text-decoration: none;
+
+            font-weight: 700;
+
+            transition: 0.3s;
+        }
+
+        .cta-section a:hover {
+            transform: translateY(-3px);
+        }
+
+        /* ==============================
+           FOOTER
+        ============================== */
+
+        footer {
+            background: #181818;
+
+            color: #cccccc;
+
+            text-align: center;
+
+            padding: 24px;
+
+            font-size: 14px;
+        }
+
+        footer span {
+            color: #ff4d00;
+        }
+
+        /* ==============================
+           RESPONSIVE
+        ============================== */
+
+        @media (max-width: 900px) {
+
+            .navbar {
+                padding: 0 4%;
+            }
+
+            .nav-links {
+                gap: 15px;
+            }
+
+            .hero-content h1 {
+                font-size: 60px;
+            }
+
+            .hero-content h2 {
+                font-size: 31px;
+            }
+
+            .features {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 650px) {
+
+            .navbar {
+                height: 65px;
+            }
+
+            .logo {
+                font-size: 23px;
+            }
+
+            .nav-links a {
+                display: none;
+            }
+
+            .nav-links .login-btn,
+            .nav-links .register-btn {
+                display: inline-block;
+            }
+
+            .hero {
+                min-height: 560px;
+            }
+
+            .hero-content h1 {
+                font-size: 47px;
+            }
+
+            .hero-content h2 {
+                font-size: 26px;
+            }
+
+            .hero-content p {
+                font-size: 15px;
+            }
+
+            .primary-btn,
+            .secondary-btn {
+                width: 100%;
+
+                max-width: 280px;
+            }
+        }
+
+    </style>
+</head>
+
+<body>
+
+
+<!-- ========================================
+     NAVBAR
+======================================== -->
+
+<nav class="navbar">
+
+    <a href="index.html" class="logo">
+        <span>Food</span>corner
+    </a>
+
+    <div class="nav-links">
+
+        <a href="restaurant">
+            Restaurants
+        </a>
+
+        <a href="cart">
+            Cart
+        </a>
+
+        <a href="login.jsp" class="login-btn">
+            Login
+        </a>
+
+        <a href="register.jsp" class="register-btn">
+            Register
+        </a>
+
+    </div>
+
+</nav>
+
+
+
+<!-- ========================================
+     HERO VIDEO
+======================================== -->
+
+<section class="hero">
+
+    <video
+        class="hero-video"
+        autoplay
+        muted
+        loop
+        playsinline
+        preload="auto">
+
+        <source
+            src="videos/foodcorner_hero.mp4"
+            type="video/mp4">
+
+        Your browser does not support HTML5 video.
+
+    </video>
+
+
+    <div class="hero-overlay"></div>
+
+
+    <div class="hero-content">
+
+        <div class="hero-small-text">
+            FRESH FOOD • FAST DELIVERY
+        </div>
+
+        <h1>
+            <span>Food</span>corner
+        </h1>
+
+        <h2>
+            Cravings Delivered.
+        </h2>
+
+        <p>
+            Discover delicious food from your favourite restaurants.
+            Fresh flavours, exciting choices and meals made for
+            every craving.
+        </p>
+
+
+        <div class="hero-buttons">
+
+            <a href="restaurant"
+               class="primary-btn">
+
+                Explore Restaurants →
+
+            </a>
+
+
+            <a href="#about"
+               class="secondary-btn">
+
+                Discover Foodcorner
+
+            </a>
+
+        </div>
+
+    </div>
+
+
+    <div class="scroll-down">
+
+        SCROLL TO EXPLORE
+
+        <span class="scroll-arrow">
+            ↓
+        </span>
+
+    </div>
+
+</section>
+
+
+
+<!-- ========================================
+     WHY FOODCORNER
+======================================== -->
+
+<section class="intro-section"
+         id="about">
+
+    <h2>
+        Why <span>Foodcorner?</span>
+    </h2>
+
+    <p>
+        From local favourites to irresistible dishes,
+        Foodcorner makes discovering and ordering food
+        simple, fast and enjoyable.
+    </p>
+
+
+    <div class="features">
+
+
+        <div class="feature-card">
+
+            <div class="feature-icon">
+                🍽️
+            </div>
+
+            <h3>
+                Delicious Choices
+            </h3>
+
+            <p>
+                Explore restaurants and discover dishes
+                across Indian, Chinese, Italian and many
+                more cuisines.
+            </p>
+
+        </div>
+
+
+        <div class="feature-card">
+
+            <div class="feature-icon">
+                ⚡
+            </div>
+
+            <h3>
+                Fast & Simple
+            </h3>
+
+            <p>
+                Browse menus, add your favourite dishes
+                to the cart and place your order quickly.
+            </p>
+
+        </div>
+
+
+        <div class="feature-card">
+
+            <div class="feature-icon">
+                🥗
+            </div>
+
+            <h3>
+                Fresh Food
+            </h3>
+
+            <p>
+                Discover fresh and delicious dishes from
+                restaurants around you.
+            </p>
+
+        </div>
+
+
+    </div>
+
+</section>
+
+
+
+<!-- ========================================
+     CTA
+======================================== -->
+
+<section class="cta-section">
+
+    <h2>
+        Hungry Already?
+    </h2>
+
+    <p>
+        Your next favourite meal is just a click away.
+    </p>
+
+    <a href="restaurant">
+        Explore Restaurants →
+    </a>
+
+</section>
+
+
+
+<!-- ========================================
+     FOOTER
+======================================== -->
+
+<footer>
+
+    © 2026 <span>Foodcorner</span>
+    • Fresh. Fast. Delicious.
+
+</footer>
+
+
+</body>
+</html>
