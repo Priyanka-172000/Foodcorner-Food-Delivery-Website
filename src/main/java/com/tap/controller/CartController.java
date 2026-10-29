@@ -1,3 +1,4 @@
+
 package com.tap.controller;
 
 import java.io.IOException;
@@ -7,14 +8,12 @@ import com.tap.model.Cart;
 import com.tap.model.CartItem;
 import com.tap.model.Menu;
 
-import jakarta.servlet.RequestDispatcher;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
-
 
 @WebServlet("/cart")
 public class CartController extends HttpServlet {
@@ -23,308 +22,327 @@ public class CartController extends HttpServlet {
 
     private MenuDaoImpl menuDao;
 
-
     @Override
-    public void init()
-            throws ServletException {
-
-        menuDao =
-                new MenuDaoImpl();
+    public void init() throws ServletException {
+        menuDao = new MenuDaoImpl();
     }
-
-
 
     @Override
     protected void doGet(
             HttpServletRequest req,
             HttpServletResponse resp)
+            throws ServletException, IOException {
 
-            throws ServletException,
-                   IOException {
+        HttpSession session = req.getSession();
 
+        Cart cart = getCart(session);
 
-        HttpSession session =
-                req.getSession();
-
-
-        Cart cart =
-                (Cart) session
-                        .getAttribute("cart");
-
-
-        if (cart == null) {
-
-            cart =
-                    new Cart();
-
-
-            session.setAttribute(
-                    "cart",
-                    cart
-            );
+        if (isAjax(req)) {
+            sendJson(resp, 200, true, "Cart loaded",
+                    0, cart);
+            return;
         }
 
+        req.setAttribute("cart", cart);
 
-        req.setAttribute(
-                "cart",
-                cart
-        );
-
-
-        RequestDispatcher rd =
-                req.getRequestDispatcher(
-                        "/cart.jsp"
-                );
-
-
-        rd.forward(
-                req,
-                resp
-        );
+        req.getRequestDispatcher("/cart.jsp")
+                .forward(req, resp);
     }
-
-
 
     @Override
     protected void doPost(
             HttpServletRequest req,
             HttpServletResponse resp)
+            throws ServletException, IOException {
 
-            throws ServletException,
-                   IOException {
+        HttpSession session = req.getSession();
 
+        Cart cart = getCart(session);
 
-        HttpSession session =
-                req.getSession();
+        String action = req.getParameter("action");
 
-
-        Cart cart =
-                (Cart) session
-                        .getAttribute("cart");
-
-
-        if (cart == null) {
-
-            cart =
-                    new Cart();
-
-
-            session.setAttribute(
-                    "cart",
-                    cart
-            );
+        if (action == null || action.isBlank()) {
+            sendError(req, resp, cart, 400,
+                    "Invalid cart action");
+            return;
         }
 
+        int menuId = 0;
+        int itemQuantity = 0;
+        int restaurantId = 0;
 
-        String action =
-                req.getParameter(
-                        "action"
-                );
-
-
-
-        /*
-         * ADD
-         */
         if ("add".equals(action)) {
 
+            menuId = parsePositiveInt(
+                    req.getParameter("menuId"));
 
-            int menuId =
-                    Integer.parseInt(
-                            req.getParameter(
-                                    "menuId"
-                            )
-                    );
+            int quantity = parsePositiveInt(
+                    req.getParameter("quantity"));
 
+            if (menuId == 0 || quantity == 0) {
+                sendError(req, resp, cart, 400,
+                        "Invalid menu item or quantity");
+                return;
+            }
 
-            int quantity =
-                    Integer.parseInt(
-                            req.getParameter(
-                                    "quantity"
-                            )
-                    );
+            Menu menu = menuDao.getMenu(menuId);
 
+            if (menu == null || !menu.isAvailable()) {
+                sendError(req, resp, cart, 404,
+                        "This menu item is unavailable");
+                return;
+            }
 
-            Menu menu =
-                    menuDao.getMenu(
-                            menuId
-                    );
+            restaurantId = menu.getRestaurantId();
 
-
-            if (menu != null &&
-                menu.isAvailable()) {
-
-
-                /*
-                 * Allow items from only
-                 * one restaurant.
-                 */
+            synchronized (cart) {
 
                 if (!cart.isEmpty()) {
 
-
-                    CartItem existingItem =
+                    CartItem firstItem =
                             cart.getItems()
-                                .iterator()
-                                .next();
+                                    .iterator()
+                                    .next();
 
+                    if (firstItem.getRestaurantId()
+                            != restaurantId) {
 
-                    if (existingItem
-                            .getRestaurantId()
-                            !=
-                            menu.getRestaurantId()) {
-
-
-                        resp.sendRedirect(
-
-                                req.getContextPath()
-
-                                + "/menu?restaurantId="
-
-                                + menu.getRestaurantId()
-
-                                + "&cartError=restaurant"
-                        );
-
+                        if (isAjax(req)) {
+                            sendJson(resp, 409, false,
+                                    "Your cart contains items from another restaurant",
+                                    0, cart);
+                        } else {
+                            resp.sendRedirect(
+                                    req.getContextPath()
+                                    + "/menu?restaurantId="
+                                    + restaurantId
+                                    + "&cartError=restaurant");
+                        }
 
                         return;
                     }
                 }
 
-
-
-                CartItem cartItem =
-                        new CartItem(
-
-                                menu.getMenuId(),
-
-                                menu.getRestaurantId(),
-
-                                menu.getItemName(),
-
-                                menu.getPrice(),
-
-                                quantity,
-
-                                menu.getImagePath()
-                        );
-
-
-
-                cart.addItem(
-                        cartItem
+                CartItem cartItem = new CartItem(
+                        menu.getMenuId(),
+                        menu.getRestaurantId(),
+                        menu.getItemName(),
+                        menu.getPrice(),
+                        quantity,
+                        menu.getImagePath()
                 );
 
+                cart.addItem(cartItem);
 
-                session.setAttribute(
-                        "cart",
-                        cart
-                );
+                itemQuantity = getItemQuantity(cart, menuId);
+            }
 
+        } else if ("update".equals(action)) {
 
+            menuId = parsePositiveInt(
+                    req.getParameter("menuId"));
 
-                /*
-                 * IMPORTANT:
-                 *
-                 * Return to same menu.
-                 */
+            Integer quantity = parseNonNegativeInt(
+                    req.getParameter("quantity"));
 
-                resp.sendRedirect(
-
-                        req.getContextPath()
-
-                        + "/menu?restaurantId="
-
-                        + menu.getRestaurantId()
-
-                        + "&added=true"
-                );
-
-
+            if (menuId == 0 || quantity == null) {
+                sendError(req, resp, cart, 400,
+                        "Invalid menu item or quantity");
                 return;
+            }
+
+            synchronized (cart) {
+
+                CartItem existing = findItem(cart, menuId);
+
+                if (existing == null) {
+                    sendError(req, resp, cart, 404,
+                            "Item not found in cart");
+                    return;
+                }
+
+                if (quantity == 0) {
+                    cart.removeItem(menuId);
+                } else {
+                    cart.updateItem(menuId, quantity);
+                }
+
+                itemQuantity = getItemQuantity(cart, menuId);
+            }
+
+        } else if ("remove".equals(action)) {
+
+            menuId = parsePositiveInt(
+                    req.getParameter("menuId"));
+
+            if (menuId == 0) {
+                sendError(req, resp, cart, 400,
+                        "Invalid menu item");
+                return;
+            }
+
+            synchronized (cart) {
+                cart.removeItem(menuId);
+            }
+
+            itemQuantity = 0;
+
+        } else if ("clear".equals(action)) {
+
+            synchronized (cart) {
+                cart.clear();
+            }
+
+            itemQuantity = 0;
+
+        } else {
+
+            sendError(req, resp, cart, 400,
+                    "Unsupported cart action");
+            return;
+        }
+
+        session.setAttribute("cart", cart);
+
+        if (isAjax(req)) {
+
+            sendJson(resp, 200, true,
+                    "Cart updated successfully",
+                    itemQuantity, cart);
+
+            return;
+        }
+
+        if ("add".equals(action)) {
+
+            resp.sendRedirect(
+                    req.getContextPath()
+                    + "/menu?restaurantId="
+                    + restaurantId);
+
+        } else {
+
+            resp.sendRedirect(
+                    req.getContextPath() + "/cart");
+        }
+    }
+
+    private Cart getCart(HttpSession session) {
+
+        synchronized (session) {
+
+            Cart cart = (Cart) session.getAttribute("cart");
+
+            if (cart == null) {
+                cart = new Cart();
+                session.setAttribute("cart", cart);
+            }
+
+            return cart;
+        }
+    }
+
+    private CartItem findItem(Cart cart, int menuId) {
+
+        for (CartItem item : cart.getItems()) {
+
+            if (item.getMenuId() == menuId) {
+                return item;
             }
         }
 
+        return null;
+    }
 
+    private int getItemQuantity(Cart cart, int menuId) {
 
-        /*
-         * UPDATE
-         */
-        else if ("update".equals(action)) {
+        CartItem item = findItem(cart, menuId);
 
+        return item == null ? 0 : item.getQuantity();
+    }
 
-            int menuId =
-                    Integer.parseInt(
-                            req.getParameter(
-                                    "menuId"
-                            )
-                    );
+    private int parsePositiveInt(String value) {
 
+        Integer number = parseNonNegativeInt(value);
 
-            int quantity =
-                    Integer.parseInt(
-                            req.getParameter(
-                                    "quantity"
-                            )
-                    );
-
-
-            cart.updateItem(
-                    menuId,
-                    quantity
-            );
+        if (number == null || number == 0) {
+            return 0;
         }
 
+        return number;
+    }
 
+    private Integer parseNonNegativeInt(String value) {
 
-        /*
-         * REMOVE
-         */
-        else if ("remove".equals(action)) {
-
-
-            int menuId =
-                    Integer.parseInt(
-                            req.getParameter(
-                                    "menuId"
-                            )
-                    );
-
-
-            cart.removeItem(
-                    menuId
-            );
+        if (value == null || value.isBlank()) {
+            return null;
         }
 
+        try {
 
+            int number = Integer.parseInt(value.trim());
 
-        /*
-         * CLEAR
-         */
-        else if ("clear".equals(action)) {
+            return number >= 0 ? number : null;
 
+        } catch (NumberFormatException e) {
 
-            cart.clear();
+            return null;
         }
+    }
 
+    private boolean isAjax(HttpServletRequest req) {
 
+        return "true".equalsIgnoreCase(
+                    req.getParameter("ajax"))
+                || "XMLHttpRequest".equalsIgnoreCase(
+                    req.getHeader("X-Requested-With"));
+    }
 
-        session.setAttribute(
-                "cart",
-                cart
-        );
+    private void sendError(
+            HttpServletRequest req,
+            HttpServletResponse resp,
+            Cart cart,
+            int status,
+            String message) throws IOException {
 
+        if (isAjax(req)) {
 
+            sendJson(resp, status, false,
+                    message, 0, cart);
 
-        /*
-         * Update / remove / clear
-         * return to cart.jsp.
-         */
+        } else {
 
-        resp.sendRedirect(
+            resp.sendError(status, message);
+        }
+    }
 
-                req.getContextPath()
-                + "/cart"
-        );
+    private void sendJson(
+            HttpServletResponse resp,
+            int status,
+            boolean success,
+            String message,
+            int itemQuantity,
+            Cart cart) throws IOException {
+
+        resp.setStatus(status);
+        resp.setContentType("application/json");
+        resp.setCharacterEncoding("UTF-8");
+        resp.setHeader("Cache-Control", "no-store");
+
+        synchronized (cart) {
+
+            String json =
+                    "{"
+                    + "\"success\":" + success + ","
+                    + "\"message\":\"" + message + "\","
+                    + "\"itemQuantity\":" + itemQuantity + ","
+                    + "\"cartQuantity\":"
+                    + cart.getTotalQuantity() + ","
+                    + "\"cartTotal\":"
+                    + cart.getTotalAmount()
+                    + "}";
+
+            resp.getWriter().write(json);
+        }
     }
 }

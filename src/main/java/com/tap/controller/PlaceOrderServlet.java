@@ -1,8 +1,9 @@
+
 package com.tap.controller;
 
 import java.io.IOException;
-
 import java.sql.Timestamp;
+import java.util.List;
 
 import com.tap.DaoImpl.OrderDaoImpl;
 import com.tap.DaoImpl.OrderItemDaoImpl;
@@ -19,7 +20,6 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 
-
 @WebServlet("/placeOrder")
 public class PlaceOrderServlet extends HttpServlet {
 
@@ -28,251 +28,122 @@ public class PlaceOrderServlet extends HttpServlet {
     private OrderDaoImpl orderDao;
     private OrderItemDaoImpl orderItemDao;
 
-
     @Override
     public void init() throws ServletException {
-
         orderDao = new OrderDaoImpl();
-
         orderItemDao = new OrderItemDaoImpl();
     }
-
 
     @Override
     protected void doPost(
             HttpServletRequest req,
             HttpServletResponse resp)
+            throws ServletException, IOException {
 
-            throws ServletException,
-                   IOException {
+        req.setCharacterEncoding("UTF-8");
 
-
-        HttpSession session =
-                req.getSession(false);
-
-
-        // CHECK SESSION
+        HttpSession session = req.getSession(false);
 
         if (session == null) {
-
-            resp.sendRedirect(
-                    req.getContextPath()
-                    + "/login.jsp"
-            );
-
+            resp.sendRedirect(req.getContextPath() + "/login.jsp");
             return;
         }
 
-
-        // GET LOGGED-IN USER
-
-        User user =
-                (User) session
-                        .getAttribute("user");
-
+        User user = (User) session.getAttribute("user");
 
         if (user == null) {
-
-            resp.sendRedirect(
-                    req.getContextPath()
-                    + "/login.jsp"
-            );
-
+            resp.sendRedirect(req.getContextPath() + "/login.jsp");
             return;
         }
 
+        Cart cart = (Cart) session.getAttribute("cart");
 
-        // GET CART
-
-        Cart cart =
-                (Cart) session
-                        .getAttribute("cart");
-
-
-        if (cart == null ||
-            cart.isEmpty()) {
-
-            resp.sendRedirect(
-                    req.getContextPath()
-                    + "/restaurant"
-            );
-
+        if (cart == null || cart.isEmpty()) {
+            resp.sendRedirect(req.getContextPath() + "/restaurant");
             return;
         }
 
+        String address = req.getParameter("address");
+        String paymentMode = req.getParameter("paymentMode");
 
-        // GET CHECKOUT DETAILS
-
-        String address =
-                req.getParameter("address");
-
-        String paymentMode =
-                req.getParameter("paymentMode");
-
-
-        if (address == null ||
-            address.trim().isEmpty()) {
-
+        if (address == null || address.trim().isEmpty()
+                || address.trim().length() > 500) {
             resp.sendRedirect(
-                    req.getContextPath()
-                    + "/checkout"
+                    req.getContextPath() + "/checkout?error=address"
             );
-
             return;
         }
 
-
-        if (paymentMode == null ||
-            paymentMode.trim().isEmpty()) {
-
-            paymentMode = "COD";
+        if (paymentMode == null || !"COD".equals(paymentMode.trim())) {
+            resp.sendRedirect(
+                    req.getContextPath() + "/checkout?error=payment"
+            );
+            return;
         }
 
+        address = address.trim();
 
-        // GET RESTAURANT ID
-
-        CartItem firstItem =
-                cart.getItems()
-                    .iterator()
-                    .next();
-
-
-        int restaurantId =
-                firstItem.getRestaurantId();
-
-
-        // CREATE ORDER
+        CartItem firstItem = cart.getItems().iterator().next();
+        int restaurantId = firstItem.getRestaurantId();
 
         Order order = new Order();
 
+        order.setUserId(user.getUserId());
+        order.setRestaurantId(restaurantId);
+        order.setOrderDate(new Timestamp(System.currentTimeMillis()));
+        order.setTotalAmount(cart.getTotalAmount());
+        order.setStatus("PENDING");
+        order.setPaymentMode("COD");
+        order.setDeliveryAddress(address);
+        order.setPaymentStatus("NOT_REQUIRED");
 
-        order.setUserId(
-                user.getUserId()
-        );
-
-
-        order.setRestaurantId(
-                restaurantId
-        );
-
-
-        order.setOrderDate(
-                new Timestamp(
-                        System.currentTimeMillis()
-                )
-        );
-
-
-        order.setTotalAmount(
-                cart.getTotalAmount()
-        );
-
-
-        order.setStatus(
-                "PENDING"
-        );
-
-
-        order.setPaymentMode(
-                paymentMode
-        );
-
-
-        // INSERT ORDER AND GET ORDER ID
-
-        int orderId =
-                orderDao.addOrder(order);
-
+        int orderId = orderDao.addOrder(order);
 
         if (orderId <= 0) {
-
             resp.sendRedirect(
-                    req.getContextPath()
-                    + "/checkout?error=order"
+                    req.getContextPath() + "/checkout?error=order"
             );
-
             return;
         }
 
+        order.setOrderId(orderId);
 
-        // INSERT ORDER ITEMS
+        for (CartItem cartItem : cart.getItems()) {
+            OrderItem orderItem = new OrderItem();
 
-        for (CartItem cartItem :
-                cart.getItems()) {
+            orderItem.setOrderId(orderId);
+            orderItem.setMenuId(cartItem.getMenuId());
+            orderItem.setQuantity(cartItem.getQuantity());
+            orderItem.setTotalAmount(cartItem.getSubtotal());
 
-
-            OrderItem orderItem =
-                    new OrderItem();
-
-
-            orderItem.setOrderId(
-                    orderId
-            );
-
-
-            orderItem.setMenuId(
-                    cartItem.getMenuId()
-            );
-
-
-            orderItem.setQuantity(
-                    cartItem.getQuantity()
-            );
-
-
-            orderItem.setTotalAmount(
-                    cartItem.getSubtotal()
-            );
-
-
-            orderItemDao.addOrderItem(
-                    orderItem
-            );
+            orderItemDao.addOrderItem(orderItem);
         }
 
+        List<OrderItem> savedItems =
+                orderItemDao.getOrderItemsByOrder(orderId);
 
-        // SAVE DETAILS FOR SUCCESS PAGE
+        if (savedItems == null
+                || savedItems.size() != cart.getItems().size()) {
 
-        session.setAttribute(
-                "lastOrderId",
-                orderId
-        );
+            order.setStatus("CANCELLED");
+            orderDao.updateOrder(order);
 
+            resp.sendRedirect(
+                    req.getContextPath() + "/checkout?error=orderitems"
+            );
+            return;
+        }
 
-        session.setAttribute(
-                "lastOrderTotal",
-                cart.getTotalAmount()
-        );
-
-
-        session.setAttribute(
-                "lastPaymentMode",
-                paymentMode
-        );
-
-
-        session.setAttribute(
-                "lastDeliveryAddress",
-                address
-        );
-
-
-        // CLEAR CART AFTER SUCCESS
+        session.setAttribute("lastOrderId", orderId);
+        session.setAttribute("lastOrderTotal", cart.getTotalAmount());
+        session.setAttribute("lastPaymentMode", "COD");
+        session.setAttribute("lastDeliveryAddress", address);
 
         cart.clear();
-
-
-        session.setAttribute(
-                "cart",
-                cart
-        );
-
-
-        // GO TO SUCCESS PAGE
+        session.setAttribute("cart", cart);
 
         resp.sendRedirect(
-                req.getContextPath()
-                + "/orderSuccess.jsp"
+                req.getContextPath() + "/orderSuccess.jsp"
         );
     }
 }

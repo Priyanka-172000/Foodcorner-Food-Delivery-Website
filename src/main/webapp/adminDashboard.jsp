@@ -1,1133 +1,445 @@
-<%@ page language="java"
-    contentType="text/html; charset=UTF-8"
-    pageEncoding="UTF-8"%>
 
+<%@ page language="java" contentType="text/html; charset=UTF-8"
+    pageEncoding="UTF-8" %>
 <%@ page import="com.tap.model.User" %>
 
 <%
-User admin =
-        (User) request.getAttribute("admin");
+    User admin = (User) session.getAttribute("admin");
 
-if (admin == null) {
+    if (admin == null) {
+        admin = (User) session.getAttribute("user");
+    }
 
-    admin =
-        (User) session.getAttribute("user");
-}
+    if (admin == null || admin.getRole() == null
+            || !"ADMIN".equalsIgnoreCase(admin.getRole())) {
+        response.sendRedirect(request.getContextPath() + "/login.jsp");
+        return;
+    }
 
-if (admin == null ||
-    admin.getRole() == null ||
-    !"ADMIN".equalsIgnoreCase(admin.getRole())) {
-
-    response.sendRedirect(
-        request.getContextPath()
-        + "/login.jsp"
-    );
-
-    return;
-}
+    String contextPath = request.getContextPath();
 %>
 
 <!DOCTYPE html>
-
-<html>
-
+<html lang="en">
 <head>
-
-<meta charset="UTF-8">
-
-<meta name="viewport"
-      content="width=device-width, initial-scale=1.0">
-
-<title>Foodcorner | Admin Dashboard</title>
-
-
-<style>
-
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-}
-
-
-body {
-
-    font-family:
-        Arial,
-        Helvetica,
-        sans-serif;
-
-    background: #f7f7f7;
-
-    color: #222;
-
-    min-height: 100vh;
-}
-
-
-/* ============================= */
-/* NAVBAR */
-/* ============================= */
-
-.navbar {
-
-    background: white;
-
-    padding: 16px 6%;
-
-    display: flex;
-
-    justify-content: space-between;
-
-    align-items: center;
-
-    box-shadow:
-        0 2px 12px
-        rgba(0,0,0,0.08);
-
-    position: sticky;
-
-    top: 0;
-
-    z-index: 100;
-}
-
-
-.logo {
-
-    font-size: 29px;
-
-    font-weight: bold;
-
-    color: #ff5200;
-}
-
-
-.logo span {
-
-    color: #222;
-}
-
-
-.nav-right {
-
-    display: flex;
-
-    align-items: center;
-
-    gap: 16px;
-}
-
-
-.admin-name {
-
-    font-size: 14px;
-
-    font-weight: bold;
-
-    color: #444;
-}
-
-
-.website-link {
-
-    text-decoration: none;
-
-    color: #ff5200;
-
-    border:
-        1px solid #ff5200;
-
-    padding:
-        9px 15px;
-
-    border-radius: 8px;
-
-    font-size: 13px;
-
-    font-weight: bold;
-
-    transition: 0.2s;
-}
-
-
-.website-link:hover {
-
-    background: #ff5200;
-
-    color: white;
-}
-
-
-.logout-link {
-
-    text-decoration: none;
-
-    background: #222;
-
-    color: white;
-
-    padding:
-        10px 16px;
-
-    border-radius: 8px;
-
-    font-size: 13px;
-
-    font-weight: bold;
-
-    transition: 0.2s;
-}
-
-
-.logout-link:hover {
-
-    background: #000;
-}
-
-
-/* ============================= */
-/* HERO */
-/* ============================= */
-
-.hero {
-
-    padding:
-        48px 7%;
-
-    background:
-        linear-gradient(
-            135deg,
-            #fff0e8,
-            #fff9f6
-        );
-}
-
-
-.hero-content {
-
-    max-width: 900px;
-}
-
-
-.admin-badge {
-
-    display: inline-block;
-
-    background: #ff5200;
-
-    color: white;
-
-    font-size: 12px;
-
-    font-weight: bold;
-
-    padding:
-        7px 12px;
-
-    border-radius: 20px;
-
-    margin-bottom: 15px;
-}
-
-
-.hero h1 {
-
-    font-size: 38px;
-
-    margin-bottom: 10px;
-}
-
-
-.hero h1 span {
-
-    color: #ff5200;
-}
-
-
-.hero p {
-
-    color: #666;
-
-    line-height: 1.7;
-
-    font-size: 15px;
-}
-
-
-/* ============================= */
-/* DASHBOARD */
-/* ============================= */
-
-.dashboard-container {
-
-    width: 86%;
-
-    max-width: 1200px;
-
-    margin:
-        42px auto
-        70px auto;
-}
-
-
-.section-title {
-
-    margin-bottom: 25px;
-}
-
-
-.section-title h2 {
-
-    font-size: 26px;
-
-    margin-bottom: 6px;
-}
-
-
-.section-title p {
-
-    color: #777;
-
-    font-size: 14px;
-}
-
-
-/* ============================= */
-/* CARDS */
-/* ============================= */
-
-.dashboard-grid {
-
-    display: grid;
-
-    grid-template-columns:
-        repeat(
-            auto-fit,
-            minmax(260px, 1fr)
-        );
-
-    gap: 24px;
-}
-
-
-.dashboard-card {
-
-    background: white;
-
-    border-radius: 16px;
-
-    padding: 27px;
-
-    border:
-        1px solid #eeeeee;
-
-    box-shadow:
-        0 5px 18px
-        rgba(0,0,0,0.05);
-
-    transition:
-        transform 0.25s,
-        box-shadow 0.25s;
-}
-
-
-.dashboard-card:hover {
-
-    transform:
-        translateY(-5px);
-
-    box-shadow:
-        0 12px 30px
-        rgba(0,0,0,0.10);
-}
-
-
-.card-icon {
-
-    width: 55px;
-
-    height: 55px;
-
-    border-radius: 14px;
-
-    background: #fff0e8;
-
-    display: flex;
-
-    justify-content: center;
-
-    align-items: center;
-
-    font-size: 28px;
-
-    margin-bottom: 18px;
-}
-
-
-.dashboard-card h3 {
-
-    font-size: 20px;
-
-    margin-bottom: 9px;
-}
-
-
-.dashboard-card p {
-
-    color: #777;
-
-    font-size: 14px;
-
-    line-height: 1.6;
-
-    min-height: 66px;
-}
-
-
-.card-btn {
-
-    display: inline-block;
-
-    margin-top: 18px;
-
-    background: #ff5200;
-
-    color: white;
-
-    text-decoration: none;
-
-    padding:
-        11px 17px;
-
-    border-radius: 8px;
-
-    font-size: 13px;
-
-    font-weight: bold;
-
-    transition: 0.2s;
-}
-
-
-.card-btn:hover {
-
-    background: #e94a00;
-}
-
-
-/* ============================= */
-/* WEBSITE CARD */
-/* ============================= */
-
-.visit-card {
-
-    border:
-        2px solid
-        #ff5200;
-}
-
-
-.visit-card .card-icon {
-
-    background: #ff5200;
-
-    color: white;
-}
-
-
-.visit-card .card-btn {
-
-    background: #222;
-}
-
-
-.visit-card .card-btn:hover {
-
-    background: #000;
-}
-
-
-/* ============================= */
-/* QUICK INFORMATION */
-/* ============================= */
-
-.admin-info {
-
-    margin-top: 40px;
-
-    background: white;
-
-    border-radius: 16px;
-
-    padding: 25px;
-
-    border:
-        1px solid #eeeeee;
-}
-
-
-.admin-info h3 {
-
-    margin-bottom: 18px;
-}
-
-
-.info-row {
-
-    display: flex;
-
-    justify-content: space-between;
-
-    align-items: center;
-
-    padding:
-        12px 0;
-
-    border-bottom:
-        1px solid #eeeeee;
-
-    gap: 20px;
-}
-
-
-.info-row:last-child {
-
-    border-bottom: none;
-}
-
-
-.info-label {
-
-    color: #777;
-
-    font-size: 14px;
-}
-
-
-.info-value {
-
-    font-weight: bold;
-
-    font-size: 14px;
-
-    text-align: right;
-}
-
-
-.role-value {
-
-    color: #ff5200;
-}
-
-
-/* ============================= */
-/* FOOTER */
-/* ============================= */
-
-footer {
-
-    background: #181818;
-
-    color: #cccccc;
-
-    text-align: center;
-
-    padding: 26px;
-
-    margin-top: 50px;
-
-    font-size: 13px;
-}
-
-
-footer span {
-
-    color: #ff5200;
-}
-
-
-/* ============================= */
-/* RESPONSIVE */
-/* ============================= */
-
-@media(max-width: 750px) {
-
-    .navbar {
-
-        padding:
-            14px 4%;
-    }
-
-
-    .logo {
-
-        font-size: 23px;
-    }
-
-
-    .admin-name {
-
-        display: none;
-    }
-
-
-    .website-link {
-
-        display: none;
-    }
-
-
-    .hero {
-
-        padding:
-            35px 6%;
-    }
-
-
-    .hero h1 {
-
-        font-size: 30px;
-    }
-
-
-    .dashboard-container {
-
-        width: 92%;
-    }
-
-
-    .info-row {
-
-        flex-direction: column;
-
-        align-items: flex-start;
-    }
-
-
-    .info-value {
-
-        text-align: left;
-    }
-
-}
-
-</style>
-
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Admin Dashboard | Foodcorner</title>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --orange: #ff6b00;
+            --orange-dark: #e85d00;
+            --black: #171717;
+            --background: #fff8f2;
+            --white: #ffffff;
+            --text: #292929;
+            --muted: #777777;
+            --border: #eeeeee;
+        }
+
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            background: var(--background);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        a {
+            text-decoration: none;
+        }
+
+        .navbar {
+            background: var(--black);
+            color: var(--white);
+            padding: 19px 7%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .brand {
+            color: var(--orange);
+            font-size: 27px;
+            font-weight: 800;
+            letter-spacing: -0.7px;
+        }
+
+        .brand span {
+            color: var(--white);
+        }
+
+        .logout {
+            background: var(--orange);
+            color: var(--white);
+            padding: 11px 19px;
+            border-radius: 7px;
+            font-size: 14px;
+            font-weight: 700;
+            transition: background 0.2s ease;
+        }
+
+        .logout:hover {
+            background: var(--orange-dark);
+        }
+
+        .container {
+            width: 88%;
+            max-width: 1180px;
+            margin: 0 auto;
+            flex: 1;
+        }
+
+        .welcome {
+            margin-top: 38px;
+            padding: 35px 38px;
+            border-radius: 16px;
+            background: linear-gradient(120deg, #191919, #39312c);
+            color: var(--white);
+        }
+
+        .welcome-label {
+            color: #ff9a55;
+            background: rgba(255, 107, 0, 0.15);
+            border: 1px solid rgba(255, 107, 0, 0.3);
+            border-radius: 20px;
+            padding: 7px 12px;
+            display: inline-block;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            margin-bottom: 16px;
+        }
+
+        .welcome h1 {
+            font-size: 32px;
+            margin-bottom: 12px;
+            line-height: 1.3;
+        }
+
+        .welcome h1 span {
+            color: var(--orange);
+        }
+
+        .welcome p {
+            color: #d3d3d3;
+            font-size: 14px;
+            line-height: 1.8;
+            max-width: 650px;
+        }
+
+        .section {
+            margin-top: 36px;
+            margin-bottom: 42px;
+        }
+
+        .section-heading {
+            margin-bottom: 22px;
+        }
+
+        .section-heading h2 {
+            font-size: 24px;
+            margin-bottom: 8px;
+            color: var(--black);
+        }
+
+        .section-heading p {
+            color: var(--muted);
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .management-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 20px;
+        }
+
+        .management-card {
+            background: var(--white);
+            border: 1px solid var(--border);
+            border-radius: 13px;
+            padding: 25px;
+            min-height: 225px;
+            display: flex;
+            flex-direction: column;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .management-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.07);
+            border-color: #ffd4b8;
+        }
+
+        .card-icon {
+            width: 49px;
+            height: 49px;
+            border-radius: 12px;
+            background: #fff0e5;
+            color: var(--orange);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 25px;
+            margin-bottom: 19px;
+        }
+
+        .management-card h3 {
+            font-size: 17px;
+            color: var(--black);
+            margin-bottom: 10px;
+        }
+
+        .management-card p {
+            font-size: 13px;
+            color: var(--muted);
+            line-height: 1.7;
+            margin-bottom: 20px;
+            flex: 1;
+        }
+
+        .card-action {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: var(--orange);
+            font-size: 13px;
+            font-weight: 700;
+            padding-top: 14px;
+            border-top: 1px solid #f3f3f3;
+        }
+
+        .arrow {
+            font-size: 19px;
+            transition: transform 0.2s ease;
+        }
+
+        .management-card:hover .arrow {
+            transform: translateX(4px);
+        }
+
+        .footer {
+            text-align: center;
+            background: var(--black);
+            color: #bdbdbd;
+            padding: 21px 15px;
+            font-size: 13px;
+            line-height: 1.7;
+        }
+
+        .footer span {
+            color: var(--orange);
+            font-weight: 700;
+        }
+
+        @media (max-width: 900px) {
+            .management-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+
+            .container {
+                width: 92%;
+            }
+        }
+
+        @media (max-width: 580px) {
+            .navbar {
+                padding: 17px 5%;
+            }
+
+            .brand {
+                font-size: 24px;
+            }
+
+            .container {
+                width: 92%;
+            }
+
+            .welcome {
+                margin-top: 23px;
+                padding: 28px 23px;
+            }
+
+            .welcome h1 {
+                font-size: 26px;
+            }
+
+            .section-heading h2 {
+                font-size: 22px;
+            }
+
+            .management-grid {
+                grid-template-columns: 1fr;
+                gap: 15px;
+            }
+
+            .management-card {
+                min-height: 205px;
+            }
+        }
+    </style>
 </head>
-
-
 
 <body>
 
-
-
-<!-- ============================= -->
-<!-- NAVBAR -->
-<!-- ============================= -->
-
-<nav class="navbar">
-
-
-    <div class="logo">
-
-        Food<span>corner</span>
-
-    </div>
-
-
-    <div class="nav-right">
-
-
-        <div class="admin-name">
-
-            👤 <%= admin.getUsername() %>
-
-        </div>
-
-
-        <a
-            href="<%= request.getContextPath() %>/restaurant"
-
-            class="website-link">
-
-            🌐 Visit Website
-
+    <nav class="navbar">
+        <a href="<%= contextPath %>/adminDashboard.jsp" class="brand">
+            Food<span>corner</span>
         </a>
 
+        <a href="<%= contextPath %>/logout" class="logout">Logout</a>
+    </nav>
 
-        <a
-            href="<%= request.getContextPath() %>/logout"
+    <main class="container">
 
-            class="logout-link">
+        <section class="welcome">
+            <div class="welcome-label">ADMIN CONTROL PANEL</div>
 
-            Logout
-
-        </a>
-
-
-    </div>
-
-
-</nav>
-
-
-
-<!-- ============================= -->
-<!-- HERO -->
-<!-- ============================= -->
-
-<section class="hero">
-
-
-    <div class="hero-content">
-
-
-        <div class="admin-badge">
-
-            ADMIN PANEL
-
-        </div>
-
-
-        <h1>
-
-            Welcome,
-
-            <span>
-
-                <%= admin.getUsername() %>
-
-            </span>
-
-        </h1>
-
-
-        <p>
-
-            Manage Foodcorner restaurants,
-            menu items, customer orders and
-            registered customers from your
-            admin dashboard.
-
-        </p>
-
-
-    </div>
-
-
-</section>
-
-
-
-<!-- ============================= -->
-<!-- DASHBOARD -->
-<!-- ============================= -->
-
-<main class="dashboard-container">
-
-
-    <div class="section-title">
-
-        <h2>
-
-            Management Dashboard
-
-        </h2>
-
-
-        <p>
-
-            Select a module to manage your
-            Foodcorner application.
-
-        </p>
-
-    </div>
-
-
-
-    <div class="dashboard-grid">
-
-
-
-        <!-- ============================= -->
-        <!-- RESTAURANTS -->
-        <!-- ============================= -->
-
-        <div class="dashboard-card">
-
-
-            <div class="card-icon">
-
-                🍽️
-
-            </div>
-
-
-            <h3>
-
-                Manage Restaurants
-
-            </h3>
-
+            <h1>Welcome to <span>Foodcorner!</span></h1>
 
             <p>
-
-                Add new restaurants,
-                edit restaurant information,
-                manage restaurant images,
-                status and other details.
-
+                Manage your food delivery platform from one place.
+                Select a section below to manage restaurants, menus,
+                customer accounts, orders, or your administrator profile.
             </p>
+        </section>
 
+        <section class="section">
 
-            <a
-                href="<%= request.getContextPath() %>/adminRestaurants"
-
-                class="card-btn">
-
-                Manage Restaurants →
-
-            </a>
-
-
-        </div>
-
-
-
-        <!-- ============================= -->
-        <!-- MENU -->
-        <!-- ============================= -->
-
-        <div class="dashboard-card">
-
-
-            <div class="card-icon">
-
-                📋
-
+            <div class="section-heading">
+                <h2>Dashboard</h2>
+                <p>Everything you need, organized in one simple workspace.</p>
             </div>
 
+            <div class="management-grid">
 
-            <h3>
+                <a href="<%= contextPath %>/adminRestaurants"
+                   class="management-card">
 
-                Manage Menu
+                    <div class="card-icon">&#127860;</div>
 
-            </h3>
+                    <h3>Manage Restaurants</h3>
 
+                    <p>
+                        View restaurant details, update restaurant information,
+                        and manage restaurant status and menus.
+                    </p>
 
-            <p>
+                    <div class="card-action">
+                        <span>Manage Restaurants</span>
+                        <span class="arrow">&#8594;</span>
+                    </div>
+                </a>
 
-                Add menu items,
-                edit food details,
-                set prices,
-                availability and
-                menu item image paths.
+                <a href="<%= contextPath %>/adminMenus"
+                   class="management-card">
 
-            </p>
+                    <div class="card-icon">&#127828;</div>
 
+                    <h3>Manage Menus</h3>
 
-            <a
-                href="<%= request.getContextPath() %>/adminMenus"
+                    <p>
+                        View menu items, update prices and descriptions,
+                        and manage item availability.
+                    </p>
 
-                class="card-btn">
+                    <div class="card-action">
+                        <span>Manage Menus</span>
+                        <span class="arrow">&#8594;</span>
+                    </div>
+                </a>
 
-                Manage Menu →
+                <a href="<%= contextPath %>/adminOrders"
+                   class="management-card">
 
-            </a>
+                    <div class="card-icon">&#128722;</div>
 
+                    <h3>View Orders</h3>
 
-        </div>
+                    <p>
+                        Review customer orders, inspect order details,
+                        and monitor order status.
+                    </p>
 
+                    <div class="card-action">
+                        <span>View Orders</span>
+                        <span class="arrow">&#8594;</span>
+                    </div>
+                </a>
 
+                <a href="<%= contextPath %>/adminCustomers"
+                   class="management-card">
 
-        <!-- ============================= -->
-        <!-- ORDERS -->
-        <!-- ============================= -->
+                    <div class="card-icon">&#128101;</div>
 
-        <div class="dashboard-card">
+                    <h3>Manage Customers</h3>
 
+                    <p>
+                        Search registered customers and view their
+                        account information.
+                    </p>
 
-            <div class="card-icon">
+                    <div class="card-action">
+                        <span>Manage Customers</span>
+                        <span class="arrow">&#8594;</span>
+                    </div>
+                </a>
 
-                📦
+                <a href="<%= contextPath %>/editProfile"
+                   class="management-card">
+
+                    <div class="card-icon">&#128100;</div>
+
+                    <h3>Admin Profile</h3>
+
+                    <p>
+                        View and update your administrator account
+                        information and personal details.
+                    </p>
+
+                    <div class="card-action">
+                        <span>Edit Profile</span>
+                        <span class="arrow">&#8594;</span>
+                    </div>
+                </a>
+
+                <a href="<%= contextPath %>/restaurant"
+                   class="management-card">
+
+                    <div class="card-icon">&#127968;</div>
+
+                    <h3>Visit Website</h3>
+
+                    <p>
+                        Open the customer-facing Foodcorner website
+                        to explore restaurants and the food ordering pages.
+                    </p>
+
+                    <div class="card-action">
+                        <span>Go to Website</span>
+                        <span class="arrow">&#8594;</span>
+                    </div>
+                </a>
 
             </div>
+        </section>
 
+    </main>
 
-            <h3>
-
-                Manage Orders
-
-            </h3>
-
-
-           <p>
-
-    View all customer orders,
-    payment information,
-    order details and the
-    current order status.
-
-</p>
-
-
-            <a
-                href="<%= request.getContextPath() %>/adminOrders"
-
-                class="card-btn">
-
-                View Orders →
-
-            </a>
-
-
-        </div>
-
-
-
-        <!-- ============================= -->
-        <!-- CUSTOMERS -->
-        <!-- ============================= -->
-
-        <div class="dashboard-card">
-
-
-            <div class="card-icon">
-
-                👥
-
-            </div>
-
-
-            <h3>
-
-                Manage Customers
-
-            </h3>
-
-
-            <p>
-
-                View registered customers,
-                contact information,
-                addresses and customer
-                account details.
-
-            </p>
-
-
-            <a
-                href="<%= request.getContextPath() %>/adminCustomers"
-
-                class="card-btn">
-
-                View Customers →
-
-            </a>
-
-
-        </div>
-
-
-
-        <!-- ============================= -->
-        <!-- VISIT WEBSITE -->
-        <!-- ============================= -->
-
-        <div class="dashboard-card visit-card">
-
-
-            <div class="card-icon">
-
-                🌐
-
-            </div>
-
-
-            <h3>
-
-                Visit Website
-
-            </h3>
-
-
-            <p>
-
-                Browse the normal Foodcorner
-                website as an administrator.
-                Your admin session will remain
-                active while browsing.
-
-            </p>
-
-
-            <a
-                href="<%= request.getContextPath() %>/restaurant"
-
-                class="card-btn">
-
-                Open Website →
-
-            </a>
-
-
-        </div>
-
-
-
-        <!-- ============================= -->
-        <!-- PROFILE -->
-        <!-- ============================= -->
-
-        <div class="dashboard-card">
-
-
-            <div class="card-icon">
-
-                👤
-
-            </div>
-
-
-            <h3>
-
-                My Profile
-
-            </h3>
-
-
-            <p>
-
-                View or update your admin
-                profile information including
-                name, phone number,
-                address and password.
-
-            </p>
-
-
-            <a
-                href="<%= request.getContextPath() %>/editProfile"
-
-                class="card-btn">
-
-                Edit Profile →
-
-            </a>
-
-
-        </div>
-
-
-    </div>
-
-
-
-    <!-- ============================= -->
-    <!-- ADMIN INFORMATION -->
-    <!-- ============================= -->
-
-    <div class="admin-info">
-
-
-        <h3>
-
-            Admin Information
-
-        </h3>
-
-
-        <div class="info-row">
-
-
-            <span class="info-label">
-
-                Name
-
-            </span>
-
-
-            <span class="info-value">
-
-                <%= admin.getUsername() %>
-
-            </span>
-
-
-        </div>
-
-
-
-        <div class="info-row">
-
-
-            <span class="info-label">
-
-                Email
-
-            </span>
-
-
-            <span class="info-value">
-
-                <%= admin.getEmail() %>
-
-            </span>
-
-
-        </div>
-
-
-
-        <div class="info-row">
-
-
-            <span class="info-label">
-
-                Role
-
-            </span>
-
-
-            <span class="info-value role-value">
-
-                <%= admin.getRole() %>
-
-            </span>
-
-
-        </div>
-
-
-    </div>
-
-
-</main>
-
-
-
-<!-- ============================= -->
-<!-- FOOTER -->
-<!-- ============================= -->
-
-<footer>
-
-    © 2026
-
-    <span>
-
-        Foodcorner
-
-    </span>
-
-    Admin Panel
-
-</footer>
-
-
+    <footer class="footer">
+        &copy; 2026 <span>Foodcorner</span> Admin Panel. All rights reserved.
+    </footer>
 
 </body>
-
 </html>

@@ -11,12 +11,16 @@ public class Order {
     private double totalAmount;
     private String status;
     private String paymentMode;
+    private String deliveryAddress;
+    private String paymentStatus;
+    private String payuTxnId;
 
     public Order() {
     }
 
-    public Order(int orderId, int userId, int restaurantId, Timestamp orderDate,
-                 double totalAmount, String status, String paymentMode) {
+    public Order(int orderId, int userId, int restaurantId,
+                 Timestamp orderDate, double totalAmount,
+                 String status, String paymentMode) {
         this.orderId = orderId;
         this.userId = userId;
         this.restaurantId = restaurantId;
@@ -91,6 +95,31 @@ public class Order {
     public void setPaymentMode(String paymentMode) {
         this.paymentMode = paymentMode;
     }
+
+    public String getDeliveryAddress() {
+        return deliveryAddress;
+    }
+
+    public void setDeliveryAddress(String deliveryAddress) {
+        this.deliveryAddress = deliveryAddress;
+    }
+
+    public String getPaymentStatus() {
+        return paymentStatus;
+    }
+
+    public void setPaymentStatus(String paymentStatus) {
+        this.paymentStatus = paymentStatus;
+    }
+
+    public String getPayuTxnId() {
+        return payuTxnId;
+    }
+
+    public void setPayuTxnId(String payuTxnId) {
+        this.payuTxnId = payuTxnId;
+    }
+
     @Override
     public String toString() {
         return "Order{" +
@@ -101,6 +130,9 @@ public class Order {
                 ", totalAmount=" + totalAmount +
                 ", status='" + status + '\'' +
                 ", paymentMode='" + paymentMode + '\'' +
+                ", deliveryAddress='" + deliveryAddress + '\'' +
+                ", paymentStatus='" + paymentStatus + '\'' +
+                ", payuTxnId='" + payuTxnId + '\'' +
                 '}';
     }
 }

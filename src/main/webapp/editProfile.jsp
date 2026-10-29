@@ -1,644 +1,254 @@
-<%@ page language="java"
-    contentType="text/html; charset=UTF-8"
-    pageEncoding="UTF-8"%>
 
 <%@ page import="com.tap.model.User" %>
+<%
+    User user = (User) request.getAttribute("user");
 
+    if (user == null) {
+        response.sendRedirect(request.getContextPath() + "/login.jsp");
+        return;
+    }
+
+    String contextPath = request.getContextPath();
+    String updated = request.getParameter("updated");
+    String error = request.getParameter("error");
+%>
 <!DOCTYPE html>
-<html>
-
+<html lang="en">
 <head>
-
-<meta charset="UTF-8">
-
-<meta name="viewport"
-      content="width=device-width, initial-scale=1.0">
-
-<title>Foodcorner | Edit Profile</title>
-
-<style>
-
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-}
-
-body {
-    font-family: Arial, Helvetica, sans-serif;
-
-    background:
-        linear-gradient(
-            135deg,
-            #fff1e9,
-            #fff8f4
-        );
-
-    color: #222;
-
-    min-height: 100vh;
-}
-
-
-/* NAVBAR */
-
-.navbar {
-    background: white;
-
-    padding: 18px 7%;
-
-    display: flex;
-
-    justify-content: space-between;
-
-    align-items: center;
-
-    box-shadow:
-        0 2px 12px rgba(0,0,0,0.08);
-}
-
-.logo {
-    font-size: 28px;
-
-    font-weight: bold;
-
-    color: #ff5200;
-}
-
-.logo span {
-    color: #222;
-}
-
-.back-link {
-    text-decoration: none;
-
-    color: #ff5200;
-
-    font-size: 15px;
-
-    font-weight: bold;
-}
-
-
-/* MAIN */
-
-.profile-wrapper {
-    min-height:
-        calc(100vh - 75px);
-
-    display: flex;
-
-    justify-content: center;
-
-    align-items: center;
-
-    padding: 45px 20px;
-}
-
-
-/* CARD */
-
-.profile-card {
-    width: 100%;
-
-    max-width: 540px;
-
-    background: white;
-
-    border-radius: 18px;
-
-    padding: 35px;
-
-    border:
-        1px solid #eeeeee;
-
-    box-shadow:
-        0 12px 35px
-        rgba(0,0,0,0.10);
-}
-
-.profile-card h1 {
-    font-size: 31px;
-
-    text-align: center;
-
-    margin-bottom: 8px;
-}
-
-.profile-card h1 span {
-    color: #ff5200;
-}
-
-.subtitle {
-    text-align: center;
-
-    color: #777;
-
-    font-size: 14px;
-
-    margin-bottom: 30px;
-}
-
-
-/* FORM */
-
-.form-group {
-    margin-bottom: 18px;
-}
-
-.form-group label {
-    display: block;
-
-    margin-bottom: 7px;
-
-    font-size: 14px;
-
-    font-weight: bold;
-}
-
-.form-control {
-    width: 100%;
-
-    padding: 12px 13px;
-
-    border:
-        1px solid #dddddd;
-
-    border-radius: 9px;
-
-    outline: none;
-
-    font-size: 14px;
-
-    transition: 0.2s;
-}
-
-.form-control:focus {
-    border-color: #ff5200;
-
-    box-shadow:
-        0 0 0 2px
-        rgba(255,82,0,0.08);
-}
-
-textarea.form-control {
-    min-height: 95px;
-
-    resize: vertical;
-
-    font-family:
-        Arial,
-        Helvetica,
-        sans-serif;
-}
-
-
-/* EMAIL READONLY */
-
-.readonly {
-    background: #f5f5f5;
-
-    color: #777;
-
-    cursor: not-allowed;
-}
-
-
-/* BUTTONS */
-
-.update-btn {
-    width: 100%;
-
-    margin-top: 8px;
-
-    padding: 13px;
-
-    border: none;
-
-    border-radius: 9px;
-
-    background: #ff5200;
-
-    color: white;
-
-    font-size: 15px;
-
-    font-weight: bold;
-
-    cursor: pointer;
-
-    transition: 0.2s;
-}
-
-.update-btn:hover {
-    background: #e94a00;
-}
-
-.cancel-btn {
-    display: block;
-
-    width: 100%;
-
-    margin-top: 10px;
-
-    padding: 12px;
-
-    border:
-        1px solid #dddddd;
-
-    border-radius: 9px;
-
-    background: white;
-
-    color: #555;
-
-    text-align: center;
-
-    text-decoration: none;
-
-    font-size: 14px;
-
-    font-weight: bold;
-}
-
-.cancel-btn:hover {
-    background: #f7f7f7;
-}
-
-
-/* MESSAGE */
-
-.message {
-    padding: 11px;
-
-    margin-bottom: 18px;
-
-    border-radius: 8px;
-
-    text-align: center;
-
-    font-size: 14px;
-}
-
-.success {
-    background: #e5f7ea;
-
-    color: #16883e;
-}
-
-.error {
-    background: #ffe5e5;
-
-    color: #c62828;
-}
-
-
-/* MOBILE */
-
-@media(max-width:600px) {
-
-    .profile-card {
-        padding: 25px;
-    }
-
-    .profile-card h1 {
-        font-size: 27px;
-    }
-
-}
-
-</style>
-
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit Profile | Foodcorner</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #fff7f0;
+            color: #333;
+        }
+
+        .navbar {
+            background: #ff6b00;
+            color: white;
+            padding: 18px 7%;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .logo {
+            font-size: 25px;
+            font-weight: bold;
+            color: white;
+            text-decoration: none;
+        }
+
+        .home-link {
+            color: white;
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        .container {
+            width: 90%;
+            max-width: 560px;
+            margin: 40px auto;
+            padding: 30px;
+            background: white;
+            border-radius: 14px;
+            box-shadow: 0 5px 22px rgba(0, 0, 0, 0.08);
+        }
+
+        h2 {
+            margin-top: 0;
+            margin-bottom: 8px;
+            color: #ff6b00;
+            text-align: center;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #777;
+            margin-bottom: 25px;
+        }
+
+        .message {
+            padding: 12px;
+            border-radius: 7px;
+            margin-bottom: 18px;
+            text-align: center;
+            font-size: 14px;
+        }
+
+        .success {
+            color: #176b35;
+            background: #e8f8ed;
+        }
+
+        .error {
+            color: #a32121;
+            background: #ffeded;
+        }
+
+        .form-group {
+            margin-bottom: 18px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 7px;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 7px;
+            font-size: 15px;
+            outline: none;
+        }
+
+        .form-control:focus {
+            border-color: #ff6b00;
+            box-shadow: 0 0 0 2px rgba(255, 107, 0, 0.12);
+        }
+
+        .form-control[readonly] {
+            background: #f3f3f3;
+            color: #666;
+        }
+
+        .btn {
+            display: block;
+            width: 100%;
+            padding: 13px;
+            border: none;
+            border-radius: 7px;
+            background: #ff6b00;
+            color: white;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            text-align: center;
+            text-decoration: none;
+        }
+
+        .btn:hover {
+            background: #e85f00;
+        }
+
+        .secondary-links {
+            margin-top: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 13px;
+            text-align: center;
+        }
+
+        .secondary-links a {
+            color: #e85f00;
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        .secondary-links a:hover {
+            text-decoration: underline;
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                padding: 22px 18px;
+                margin: 25px auto;
+            }
+
+            .navbar {
+                padding: 16px 5%;
+            }
+        }
+    </style>
 </head>
-
-
 <body>
 
-
-<%
-
-User user =
-        (User) request.getAttribute("user");
-
-
-if (user == null) {
-
-    response.sendRedirect(
-            request.getContextPath()
-            + "/login.jsp"
-    );
-
-    return;
-}
-
-%>
-
-
-
-<!-- NAVBAR -->
-
-<nav class="navbar">
-
-
-    <div class="logo">
-
-        Food<span>corner</span>
-
-    </div>
-
-
-    <a
-        class="back-link"
-
-        href="<%= request.getContextPath() %>/restaurant">
-
-        ← Home
-
-    </a>
-
-
-</nav>
-
-
-
-<!-- EDIT PROFILE -->
-
-<div class="profile-wrapper">
-
-
-    <div class="profile-card">
-
-
-        <h1>
-
-            Edit
-            <span>Profile</span>
-
-        </h1>
-
-
-        <div class="subtitle">
-
-            Update your Foodcorner account details.
-
-        </div>
-
-
-
-        <!-- SUCCESS MESSAGE -->
-
-<%
-
-String updated =
-        request.getParameter("updated");
-
-
-if ("true".equals(updated)) {
-
-%>
-
-
-        <div class="message success">
-
-            Profile updated successfully.
-
-        </div>
-
-
-<%
-
-}
-
-%>
-
-
-
-        <!-- ERROR MESSAGE -->
-
-<%
-
-String error =
-        request.getParameter("error");
-
-
-if ("true".equals(error)) {
-
-%>
-
-
-        <div class="message error">
-
-            Unable to update profile.
-            Please try again.
-
-        </div>
-
-
-<%
-
-}
-
-%>
-
-
-
-        <form
-            action="<%= request.getContextPath() %>/updateProfile"
-
-            method="post">
-
-
-            <!-- USER ID -->
-
-            <input
-                type="hidden"
-
-                name="userId"
-
-                value="<%= user.getUserId() %>">
-
-
-
-            <!-- NAME -->
-
+    <nav class="navbar">
+        <a class="logo" href="<%= contextPath %>/restaurant">Foodcorner</a>
+        <a class="home-link" href="<%= contextPath %>/restaurant">Home</a>
+    </nav>
+
+    <main class="container">
+        <h2>Edit Profile</h2>
+        <p class="subtitle">Update your account information</p>
+
+        <% if ("true".equals(updated)) { %>
+            <div class="message success">
+                Profile updated successfully.
+            </div>
+        <% } %>
+
+        <% if ("true".equals(error)) { %>
+            <div class="message error">
+                Unable to update your profile. Please check your details and try again.
+            </div>
+        <% } %>
+
+        <form action="<%= contextPath %>/updateProfile" method="post">
             <div class="form-group">
-
-
-                <label for="username">
-
-                    Full Name
-
-                </label>
-
-
+                <label for="username">Username</label>
                 <input
                     id="username"
-
                     class="form-control"
-
                     type="text"
-
                     name="username"
-
-                    value="<%= user.getUsername() %>"
-
+                    value="<%= user.getUsername() == null ? "" : user.getUsername() %>"
                     required>
-
-
             </div>
 
-
-
-            <!-- EMAIL -->
-
             <div class="form-group">
-
-
-                <label for="email">
-
-                    Email
-
-                </label>
-
-
+                <label for="email">Email</label>
                 <input
                     id="email"
-
-                    class="form-control readonly"
-
+                    class="form-control"
                     type="email"
-
                     name="email"
-
-                    value="<%= user.getEmail() %>"
-
+                    value="<%= user.getEmail() == null ? "" : user.getEmail() %>"
                     readonly>
-
-
             </div>
 
-
-
-            <!-- PHONE -->
-
             <div class="form-group">
-
-
-                <label for="phone">
-
-                    Phone Number
-
-                </label>
-
-
+                <label for="phone">Phone</label>
                 <input
                     id="phone"
-
                     class="form-control"
-
                     type="tel"
-
                     name="phone"
-
-                    value="<%= user.getPhone() %>"
-
+                    value="<%= user.getPhone() == null ? "" : user.getPhone() %>"
                     required>
-
-
             </div>
 
-
-
-            <!-- ADDRESS -->
-
             <div class="form-group">
-
-
-                <label for="address">
-
-                    Address
-
-                </label>
-
-
+                <label for="address">Address</label>
                 <textarea
                     id="address"
-
                     class="form-control"
-
                     name="address"
-
-                    required><%= user.getAddress() %></textarea>
-
-
+                    rows="3"
+                    required><%= user.getAddress() == null ? "" : user.getAddress() %></textarea>
             </div>
 
-
-
-            <!-- PASSWORD -->
-
-            <div class="form-group">
-
-
-                <label for="password">
-
-                    Password
-
-                </label>
-
-
-                <input
-                    id="password"
-
-                    class="form-control"
-
-                    type="password"
-
-                    name="password"
-
-                    value="<%= user.getPassword() %>"
-
-                    required>
-
-
-            </div>
-
-
-
-            <!-- UPDATE -->
-
-            <button
-                type="submit"
-
-                class="update-btn">
-
-                Update Profile
-
-            </button>
-
-
-
-            <!-- CANCEL -->
-
-            <a
-                class="cancel-btn"
-
-                href="<%= request.getContextPath() %>/restaurant">
-
-                Cancel
-
-            </a>
-
-
+            <button class="btn" type="submit">Save Changes</button>
         </form>
 
-
-    </div>
-
-
-</div>
-
+        <div class="secondary-links">
+            <a href="<%= contextPath %>/changePassword">Change Password</a>
+            <a href="<%= contextPath %>/restaurant">Cancel and Return Home</a>
+        </div>
+    </main>
 
 </body>
-
 </html>

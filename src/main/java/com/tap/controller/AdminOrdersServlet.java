@@ -1,3 +1,4 @@
+
 package com.tap.controller;
 
 import java.io.IOException;
@@ -21,7 +22,6 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 
-
 @WebServlet("/adminOrders")
 public class AdminOrdersServlet extends HttpServlet {
 
@@ -31,228 +31,79 @@ public class AdminOrdersServlet extends HttpServlet {
     private UserDaoImpl userDao;
     private RestaurantDaoImpl restaurantDao;
 
-
     @Override
     public void init() throws ServletException {
-
-        orderDao =
-                new OrderDaoImpl();
-
-        userDao =
-                new UserDaoImpl();
-
-        restaurantDao =
-                new RestaurantDaoImpl();
+        orderDao = new OrderDaoImpl();
+        userDao = new UserDaoImpl();
+        restaurantDao = new RestaurantDaoImpl();
     }
 
-
     @Override
-    protected void doGet(
-            HttpServletRequest req,
-            HttpServletResponse resp)
+    protected void doGet(HttpServletRequest req, HttpServletResponse resp)
+            throws ServletException, IOException {
 
-            throws ServletException,
-                   IOException {
-
-
-        /*
-         * CHECK SESSION
-         */
-        HttpSession session =
-                req.getSession(false);
-
+        HttpSession session = req.getSession(false);
 
         if (session == null) {
-
-            resp.sendRedirect(
-                    req.getContextPath()
-                    + "/login.jsp"
-            );
-
+            resp.sendRedirect(req.getContextPath() + "/login.jsp");
             return;
         }
 
+        User admin = (User) session.getAttribute("user");
 
-        /*
-         * GET LOGGED-IN USER
-         */
-        User admin =
-                (User) session.getAttribute(
-                        "user"
-                );
+        if (admin == null
+                || admin.getRole() == null
+                || !"ADMIN".equalsIgnoreCase(admin.getRole())) {
 
-
-        /*
-         * CHECK ADMIN ROLE
-         */
-        if (admin == null ||
-            admin.getRole() == null ||
-            !"ADMIN".equalsIgnoreCase(
-                    admin.getRole())) {
-
-
-            resp.sendRedirect(
-                    req.getContextPath()
-                    + "/restaurant"
-            );
-
+            resp.sendRedirect(req.getContextPath() + "/restaurant");
             return;
         }
 
+        List<Order> orders = orderDao.getAllOrders();
+        List<Restaurant> allRestaurants = restaurantDao.getAllRestaurants();
 
-        /*
-         * GET ALL ORDERS
-         */
-        List<Order> orders =
-                orderDao.getAllOrders();
-
-
-        /*
-         * AUTOMATIC ORDER STATUS
-         */
         if (orders != null) {
-
             for (Order order : orders) {
+                OrderStatusUtil.updateAutomaticStatus(order, orderDao);
+            }
+        }
 
-                OrderStatusUtil
-                    .updateAutomaticStatus(
-                            order,
-                            orderDao
+        Map<Integer, String> customerNames = new HashMap<>();
+        Map<Integer, String> restaurantNames = new HashMap<>();
+
+        if (orders != null) {
+            for (Order order : orders) {
+                int userId = order.getUserId();
+
+                if (!customerNames.containsKey(userId)) {
+                    User customer = userDao.getUser(userId);
+
+                    customerNames.put(
+                            userId,
+                            customer != null ? customer.getUsername() : "Customer"
                     );
-            }
-        }
-
-
-        /*
-         * CUSTOMER NAME MAP
-         */
-        Map<Integer, String> customerNames =
-                new HashMap<>();
-
-
-        /*
-         * RESTAURANT NAME MAP
-         */
-        Map<Integer, String> restaurantNames =
-                new HashMap<>();
-
-
-        if (orders != null) {
-
-            for (Order order : orders) {
-
-
-                /*
-                 * CUSTOMER NAME
-                 */
-                int userId =
-                        order.getUserId();
-
-
-                if (!customerNames
-                        .containsKey(userId)) {
-
-
-                    User customer =
-                            userDao.getUser(
-                                    userId
-                            );
-
-
-                    if (customer != null) {
-
-                        customerNames.put(
-                                userId,
-                                customer.getUsername()
-                        );
-
-                    } else {
-
-                        customerNames.put(
-                                userId,
-                                "Customer"
-                        );
-                    }
                 }
 
+                int restaurantId = order.getRestaurantId();
 
-                /*
-                 * RESTAURANT NAME
-                 */
-                int restaurantId =
-                        order.getRestaurantId();
+                if (!restaurantNames.containsKey(restaurantId)) {
+                    Restaurant restaurant = restaurantDao.getRestaurant(restaurantId);
 
-
-                if (!restaurantNames
-                        .containsKey(
-                                restaurantId)) {
-
-
-                    Restaurant restaurant =
-                            restaurantDao
-                                .getRestaurant(
-                                    restaurantId
-                                );
-
-
-                    if (restaurant != null) {
-
-                        restaurantNames.put(
-                                restaurantId,
-                                restaurant.getName()
-                        );
-
-                    } else {
-
-                        restaurantNames.put(
-                                restaurantId,
-                                "Restaurant"
-                        );
-                    }
+                    restaurantNames.put(
+                            restaurantId,
+                            restaurant != null ? restaurant.getName() : "Restaurant"
+                    );
                 }
             }
         }
 
+        req.setAttribute("orders", orders);
+        req.setAttribute("customerNames", customerNames);
+        req.setAttribute("restaurantNames", restaurantNames);
+        req.setAttribute("allRestaurants", allRestaurants);
+        req.setAttribute("admin", admin);
 
-        /*
-         * SEND DATA TO JSP
-         */
-        req.setAttribute(
-                "orders",
-                orders
-        );
-
-
-        req.setAttribute(
-                "customerNames",
-                customerNames
-        );
-
-
-        req.setAttribute(
-                "restaurantNames",
-                restaurantNames
-        );
-
-
-        req.setAttribute(
-                "admin",
-                admin
-        );
-
-
-        /*
-         * OPEN ADMIN ORDERS PAGE
-         */
-        RequestDispatcher rd =
-                req.getRequestDispatcher(
-                        "/adminOrders.jsp"
-                );
-
-
-        rd.forward(
-                req,
-                resp
-        );
+        RequestDispatcher rd = req.getRequestDispatcher("/adminOrders.jsp");
+        rd.forward(req, resp);
     }
 }

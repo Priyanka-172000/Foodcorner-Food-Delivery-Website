@@ -1,2241 +1,752 @@
-<%@ page language="java"
-    contentType="text/html; charset=UTF-8"
-    pageEncoding="UTF-8"%>
 
-<%@ page import="java.util.List" %>
-<%@ page import="java.util.Map" %>
-<%@ page import="java.util.HashMap" %>
+<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" %>
+<%@ page import="java.util.List,java.util.Map,java.util.HashMap" %>
+<%@ page import="com.tap.model.Menu,com.tap.model.Restaurant,com.tap.model.User" %>
 
-<%@ page import="com.tap.model.Menu" %>
-<%@ page import="com.tap.model.Restaurant" %>
-<%@ page import="com.tap.model.User" %>
-
-
-<%
-User admin =
-        (User) request.getAttribute("admin");
-
-if (admin == null) {
-
-    admin =
-        (User) session.getAttribute("user");
-}
-
-
-if (admin == null ||
-    admin.getRole() == null ||
-    !"ADMIN".equalsIgnoreCase(
-            admin.getRole())) {
-
-    response.sendRedirect(
-            request.getContextPath()
-            + "/login.jsp"
-    );
-
-    return;
-}
-
-
-List<Menu> menus =
-        (List<Menu>)
-        request.getAttribute("menus");
-
-
-List<Restaurant> restaurants =
-        (List<Restaurant>)
-        request.getAttribute("restaurants");
-
-
-Restaurant selectedRestaurant =
-        (Restaurant)
-        request.getAttribute(
-                "selectedRestaurant"
-        );
-
-
-Integer selectedRestaurantId =
-        (Integer)
-        request.getAttribute(
-                "selectedRestaurantId"
-        );
-
-
-Map<Integer, String> restaurantNames =
-        new HashMap<>();
-
-
-if (restaurants != null) {
-
-    for (Restaurant restaurant :
-            restaurants) {
-
-        restaurantNames.put(
-                restaurant.getRestaurantId(),
-                restaurant.getName()
-        );
+<%!
+    private String esc(Object value) {
+        if (value == null) return "";
+        return String.valueOf(value)
+            .replace("&", "&amp;")
+            .replace("<", "&lt;")
+            .replace(">", "&gt;")
+            .replace("\"", "&quot;")
+            .replace("'", "&#39;");
     }
-}
-
-
-String added =
-        request.getParameter("added");
-
-String updated =
-        request.getParameter("updated");
-
-String deleted =
-        request.getParameter("deleted");
-
-String error =
-        request.getParameter("error");
 %>
 
+<%
+    User admin = (User) request.getAttribute("admin");
+
+    if (admin == null) {
+        admin = (User) session.getAttribute("user");
+    }
+
+    if (admin == null || admin.getRole() == null ||
+        !"ADMIN".equalsIgnoreCase(admin.getRole())) {
+        response.sendRedirect(request.getContextPath() + "/login.jsp");
+        return;
+    }
+
+    List<Menu> menus = (List<Menu>) request.getAttribute("menus");
+    List<Restaurant> restaurants = (List<Restaurant>) request.getAttribute("restaurants");
+
+    Object selectedRestaurantValue = request.getAttribute("selectedRestaurantId");
+
+    String selectedRestaurantId = selectedRestaurantValue == null
+        ? request.getParameter("restaurantId")
+        : String.valueOf(selectedRestaurantValue);
+
+    if (selectedRestaurantId == null) {
+        selectedRestaurantId = "";
+    }
+
+    String restaurantFilter = selectedRestaurantId;
+
+    Map<Integer, String> restaurantNames = new HashMap<Integer, String>();
+
+    if (restaurants != null) {
+        for (Restaurant restaurant : restaurants) {
+            restaurantNames.put(
+                restaurant.getRestaurantId(),
+                restaurant.getName()
+            );
+        }
+    }
+
+    String viewId = request.getParameter("viewId");
+    Menu selectedMenu = null;
+
+    if (menus != null && viewId != null) {
+        for (Menu menu : menus) {
+            if (String.valueOf(menu.getMenuId()).equals(viewId)) {
+                selectedMenu = menu;
+                break;
+            }
+        }
+    }
+
+    String added = request.getParameter("added");
+    String updated = request.getParameter("updated");
+    String deleted = request.getParameter("deleted");
+    String error = request.getParameter("error");
+%>
 
 <!DOCTYPE html>
-
-<html>
-
+<html lang="en">
 <head>
-
-<meta charset="UTF-8">
-
-<meta name="viewport"
-      content="width=device-width, initial-scale=1.0">
-
-<title>
-    Foodcorner | Manage Menu
-</title>
-
-
-<style>
-
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-}
-
-
-body {
-
-    font-family:
-        Arial,
-        Helvetica,
-        sans-serif;
-
-    background: #f7f7f7;
-
-    color: #222;
-
-    min-height: 100vh;
-}
-
-
-/* ============================= */
-/* NAVBAR */
-/* ============================= */
-
-.navbar {
-
-    background: white;
-
-    padding: 16px 6%;
-
-    display: flex;
-
-    justify-content: space-between;
-
-    align-items: center;
-
-    box-shadow:
-        0 2px 12px
-        rgba(0,0,0,0.08);
-
-    position: sticky;
-
-    top: 0;
-
-    z-index: 1000;
-}
-
-
-.logo {
-
-    font-size: 28px;
-
-    font-weight: bold;
-
-    color: #ff5200;
-}
-
-
-.logo span {
-
-    color: #222;
-}
-
-
-.nav-links {
-
-    display: flex;
-
-    align-items: center;
-
-    gap: 12px;
-}
-
-
-.nav-links a {
-
-    text-decoration: none;
-
-    padding:
-        9px 14px;
-
-    border-radius: 8px;
-
-    font-size: 13px;
-
-    font-weight: bold;
-
-    transition: 0.2s;
-}
-
-
-.dashboard-btn {
-
-    color: #ff5200;
-
-    border:
-        1px solid #ff5200;
-}
-
-
-.dashboard-btn:hover {
-
-    background: #ff5200;
-
-    color: white;
-}
-
-
-.restaurant-btn {
-
-    color: #444;
-
-    border:
-        1px solid #dddddd;
-}
-
-
-.restaurant-btn:hover {
-
-    background: #f2f2f2;
-}
-
-
-.website-btn {
-
-    color: #444;
-
-    border:
-        1px solid #dddddd;
-}
-
-
-.website-btn:hover {
-
-    background: #f2f2f2;
-}
-
-
-.logout-btn {
-
-    color: white;
-
-    background: #222;
-}
-
-
-.logout-btn:hover {
-
-    background: #000;
-}
-
-
-/* ============================= */
-/* PAGE HEADER */
-/* ============================= */
-
-.page-header {
-
-    background:
-        linear-gradient(
-            135deg,
-            #fff0e8,
-            #fff9f6
-        );
-
-    padding:
-        42px 7%;
-}
-
-
-.header-container {
-
-    max-width: 1350px;
-
-    margin: auto;
-
-    display: flex;
-
-    justify-content: space-between;
-
-    align-items: center;
-
-    gap: 20px;
-}
-
-
-.page-header h1 {
-
-    font-size: 36px;
-
-    margin-bottom: 8px;
-}
-
-
-.page-header h1 span {
-
-    color: #ff5200;
-}
-
-
-.page-header p {
-
-    color: #666;
-
-    font-size: 14px;
-
-    line-height: 1.7;
-
-    max-width: 650px;
-}
-
-
-.add-btn {
-
-    display: inline-block;
-
-    background: #ff5200;
-
-    color: white;
-
-    padding:
-        13px 20px;
-
-    border-radius: 9px;
-
-    text-decoration: none;
-
-    font-size: 14px;
-
-    font-weight: bold;
-
-    white-space: nowrap;
-
-    transition: 0.2s;
-}
-
-
-.add-btn:hover {
-
-    background: #e94a00;
-}
-
-
-/* ============================= */
-/* MAIN */
-/* ============================= */
-
-.container {
-
-    width: 88%;
-
-    max-width: 1350px;
-
-    margin:
-        35px auto
-        70px auto;
-}
-
-
-/* ============================= */
-/* MESSAGE */
-/* ============================= */
-
-.message {
-
-    padding:
-        13px 16px;
-
-    border-radius: 9px;
-
-    margin-bottom: 20px;
-
-    font-size: 14px;
-
-    font-weight: bold;
-}
-
-
-.success {
-
-    background: #e6f7eb;
-
-    color: #1b7d3e;
-
-    border:
-        1px solid #bde8c9;
-}
-
-
-.error {
-
-    background: #ffe7e7;
-
-    color: #b42318;
-
-    border:
-        1px solid #ffc9c9;
-}
-
-
-/* ============================= */
-/* FILTER */
-/* ============================= */
-
-.filter-card {
-
-    background: white;
-
-    padding: 20px;
-
-    border-radius: 14px;
-
-    border:
-        1px solid #eeeeee;
-
-    margin-bottom: 25px;
-
-    display: flex;
-
-    justify-content: space-between;
-
-    align-items: center;
-
-    gap: 20px;
-
-    flex-wrap: wrap;
-}
-
-
-.filter-left {
-
-    flex: 1;
-
-    min-width: 250px;
-}
-
-
-.filter-left h3 {
-
-    margin-bottom: 6px;
-
-    font-size: 18px;
-}
-
-
-.filter-left p {
-
-    color: #777;
-
-    font-size: 13px;
-
-    line-height: 1.5;
-}
-
-
-.filter-form {
-
-    display: flex;
-
-    align-items: center;
-
-    gap: 10px;
-
-    flex-wrap: wrap;
-}
-
-
-.filter-select {
-
-    min-width: 230px;
-
-    padding:
-        11px 12px;
-
-    border:
-        1px solid #dddddd;
-
-    border-radius: 8px;
-
-    outline: none;
-
-    background: white;
-
-    font-size: 13px;
-}
-
-
-.filter-select:focus {
-
-    border-color: #ff5200;
-}
-
-
-.filter-btn {
-
-    border: none;
-
-    background: #222;
-
-    color: white;
-
-    padding:
-        11px 17px;
-
-    border-radius: 8px;
-
-    font-size: 13px;
-
-    font-weight: bold;
-
-    cursor: pointer;
-}
-
-
-.filter-btn:hover {
-
-    background: #000;
-}
-
-
-.clear-btn {
-
-    text-decoration: none;
-
-    border:
-        1px solid #dddddd;
-
-    color: #555;
-
-    padding:
-        10px 15px;
-
-    border-radius: 8px;
-
-    font-size: 13px;
-
-    font-weight: bold;
-}
-
-
-.clear-btn:hover {
-
-    background: #f5f5f5;
-}
-
-
-/* ============================= */
-/* SELECTED RESTAURANT */
-/* ============================= */
-
-.selected-info {
-
-    background: #fff6f0;
-
-    border:
-        1px solid #ffd9c7;
-
-    padding:
-        15px 18px;
-
-    border-radius: 10px;
-
-    margin-bottom: 22px;
-
-    font-size: 14px;
-
-    color: #555;
-}
-
-
-.selected-info strong {
-
-    color: #ff5200;
-}
-
-
-/* ============================= */
-/* TOP BAR */
-/* ============================= */
-
-.top-bar {
-
-    display: flex;
-
-    justify-content: space-between;
-
-    align-items: center;
-
-    gap: 20px;
-
-    margin-bottom: 20px;
-}
-
-
-.item-count {
-
-    color: #666;
-
-    font-size: 14px;
-}
-
-
-.item-count strong {
-
-    color: #ff5200;
-
-    font-size: 18px;
-}
-
-
-.admin-info {
-
-    color: #777;
-
-    font-size: 13px;
-}
-
-
-.admin-info strong {
-
-    color: #333;
-}
-
-
-/* ============================= */
-/* MENU GRID */
-/* ============================= */
-
-.menu-grid {
-
-    display: grid;
-
-    grid-template-columns:
-        repeat(
-            auto-fit,
-            minmax(300px, 1fr)
-        );
-
-    gap: 24px;
-}
-
-
-/* ============================= */
-/* MENU CARD */
-/* ============================= */
-
-.menu-card {
-
-    background: white;
-
-    border:
-        1px solid #eeeeee;
-
-    border-radius: 16px;
-
-    overflow: hidden;
-
-    box-shadow:
-        0 4px 15px
-        rgba(0,0,0,0.05);
-
-    transition:
-        transform 0.25s,
-        box-shadow 0.25s;
-}
-
-
-.menu-card:hover {
-
-    transform:
-        translateY(-4px);
-
-    box-shadow:
-        0 12px 28px
-        rgba(0,0,0,0.10);
-}
-
-
-/* ============================= */
-/* IMAGE */
-/* ============================= */
-
-.image-container {
-
-    width: 100%;
-
-    height: 205px;
-
-    position: relative;
-
-    background: #eeeeee;
-
-    overflow: hidden;
-}
-
-
-.menu-image {
-
-    width: 100%;
-
-    height: 100%;
-
-    object-fit: cover;
-
-    display: block;
-}
-
-
-.image-placeholder {
-
-    width: 100%;
-
-    height: 100%;
-
-    display: flex;
-
-    flex-direction: column;
-
-    justify-content: center;
-
-    align-items: center;
-
-    gap: 8px;
-
-    color: #888;
-
-    font-size: 13px;
-}
-
-
-.placeholder-icon {
-
-    font-size: 45px;
-}
-
-
-.menu-id {
-
-    position: absolute;
-
-    top: 12px;
-
-    left: 12px;
-
-    padding:
-        6px 9px;
-
-    border-radius: 6px;
-
-    background:
-        rgba(0,0,0,0.72);
-
-    color: white;
-
-    font-size: 11px;
-
-    font-weight: bold;
-}
-
-
-.availability {
-
-    position: absolute;
-
-    top: 12px;
-
-    right: 12px;
-
-    padding:
-        6px 10px;
-
-    border-radius: 20px;
-
-    font-size: 11px;
-
-    font-weight: bold;
-}
-
-
-.available {
-
-    background: #dff5e5;
-
-    color: #147a35;
-}
-
-
-.unavailable {
-
-    background: #ffe2e2;
-
-    color: #b42318;
-}
-
-
-/* ============================= */
-/* CARD BODY */
-/* ============================= */
-
-.card-body {
-
-    padding: 20px;
-}
-
-
-.item-name {
-
-    font-size: 21px;
-
-    font-weight: bold;
-
-    margin-bottom: 6px;
-
-    line-height: 1.3;
-}
-
-
-.restaurant-name {
-
-    color: #ff5200;
-
-    font-size: 13px;
-
-    font-weight: bold;
-
-    margin-bottom: 14px;
-}
-
-
-.description {
-
-    color: #666;
-
-    font-size: 13px;
-
-    line-height: 1.6;
-
-    min-height: 42px;
-
-    margin-bottom: 15px;
-}
-
-
-.price-row {
-
-    display: flex;
-
-    align-items: center;
-
-    justify-content: space-between;
-
-    border-top:
-        1px solid #eeeeee;
-
-    border-bottom:
-        1px solid #eeeeee;
-
-    padding:
-        13px 0;
-
-    margin-bottom: 13px;
-}
-
-
-.price-label {
-
-    color: #888;
-
-    font-size: 12px;
-}
-
-
-.price {
-
-    color: #ff5200;
-
-    font-size: 20px;
-
-    font-weight: bold;
-}
-
-
-/* ============================= */
-/* IMAGE PATH */
-/* ============================= */
-
-.image-path {
-
-    background: #fafafa;
-
-    border:
-        1px solid #eeeeee;
-
-    border-radius: 8px;
-
-    padding: 10px;
-
-    margin-bottom: 16px;
-}
-
-
-.image-path-label {
-
-    color: #999;
-
-    font-size: 11px;
-
-    display: block;
-
-    margin-bottom: 5px;
-}
-
-
-.image-path-value {
-
-    color: #555;
-
-    font-size: 11px;
-
-    line-height: 1.5;
-
-    word-break: break-all;
-
-    display: block;
-}
-
-
-/* ============================= */
-/* ACTIONS */
-/* ============================= */
-
-.actions {
-
-    display: flex;
-
-    gap: 8px;
-
-    flex-wrap: wrap;
-
-    padding-top: 16px;
-
-    border-top:
-        1px solid #eeeeee;
-}
-
-
-.action-form {
-
-    margin: 0;
-}
-
-
-.action-btn {
-
-    display: inline-block;
-
-    padding:
-        9px 12px;
-
-    border-radius: 7px;
-
-    font-size: 12px;
-
-    font-weight: bold;
-
-    cursor: pointer;
-
-    text-decoration: none;
-
-    font-family:
-        Arial,
-        Helvetica,
-        sans-serif;
-
-    transition: 0.2s;
-}
-
-
-.edit-btn {
-
-    background: #ff5200;
-
-    color: white;
-
-    border: none;
-}
-
-
-.edit-btn:hover {
-
-    background: #e94a00;
-}
-
-
-.availability-btn {
-
-    background: white;
-
-    color: #555;
-
-    border:
-        1px solid #cccccc;
-}
-
-
-.availability-btn:hover {
-
-    background: #f3f3f3;
-}
-
-
-.delete-btn {
-
-    background: white;
-
-    color: #d32f2f;
-
-    border:
-        1px solid #d32f2f;
-}
-
-
-.delete-btn:hover {
-
-    background: #d32f2f;
-
-    color: white;
-}
-
-
-/* ============================= */
-/* EMPTY */
-/* ============================= */
-
-.empty-state {
-
-    background: white;
-
-    border:
-        1px solid #eeeeee;
-
-    border-radius: 16px;
-
-    padding:
-        70px 30px;
-
-    text-align: center;
-}
-
-
-.empty-icon {
-
-    font-size: 55px;
-
-    margin-bottom: 15px;
-}
-
-
-.empty-state h2 {
-
-    margin-bottom: 10px;
-}
-
-
-.empty-state p {
-
-    color: #777;
-
-    margin-bottom: 25px;
-}
-
-
-/* ============================= */
-/* FOOTER */
-/* ============================= */
-
-footer {
-
-    background: #181818;
-
-    color: #cccccc;
-
-    text-align: center;
-
-    padding: 26px;
-
-    font-size: 13px;
-}
-
-
-footer span {
-
-    color: #ff5200;
-}
-
-
-/* ============================= */
-/* RESPONSIVE */
-/* ============================= */
-
-@media(max-width: 800px) {
-
-    .header-container {
-
-        flex-direction: column;
-
-        align-items: flex-start;
-    }
-
-
-    .filter-card {
-
-        flex-direction: column;
-
-        align-items: flex-start;
-    }
-
-
-    .filter-form {
-
-        width: 100%;
-    }
-
-
-    .filter-select {
-
-        flex: 1;
-    }
-
-
-    .top-bar {
-
-        flex-direction: column;
-
-        align-items: flex-start;
-    }
-
-}
-
-
-@media(max-width: 650px) {
-
-    .navbar {
-
-        padding:
-            14px 4%;
-    }
-
-
-    .logo {
-
-        font-size: 22px;
-    }
-
-
-    .website-btn,
-    .restaurant-btn {
-
-        display: none;
-    }
-
-
-    .page-header {
-
-        padding:
-            32px 5%;
-    }
-
-
-    .page-header h1 {
-
-        font-size: 29px;
-    }
-
-
-    .container {
-
-        width: 92%;
-    }
-
-
-    .menu-grid {
-
-        grid-template-columns: 1fr;
-    }
-
-
-    .filter-form {
-
-        flex-direction: column;
-
-        align-items: stretch;
-    }
-
-
-    .filter-select {
-
-        width: 100%;
-    }
-
-
-    .actions {
-
-        flex-direction: column;
-    }
-
-
-    .action-btn,
-    .action-form,
-    .action-form button {
-
-        width: 100%;
-
-        text-align: center;
-    }
-
-}
-
-</style>
-
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Menus | Foodcorner</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #fff8f1;
+            color: #333;
+        }
+
+        .navbar {
+            background: #f97316;
+            color: white;
+            padding: 16px 5%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .brand {
+            font-size: 23px;
+            font-weight: bold;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 18px;
+            flex-wrap: wrap;
+        }
+
+        .nav-links a {
+            color: white;
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        .container {
+            width: 92%;
+            max-width: 1250px;
+            margin: 28px auto;
+        }
+
+        .page-heading {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 22px;
+        }
+
+        h1 {
+            margin: 0 0 7px;
+            color: #9a3412;
+            font-size: 28px;
+        }
+
+        .subtitle {
+            color: #777;
+            margin: 0;
+        }
+
+        .panel {
+            background: white;
+            border-radius: 12px;
+            padding: 22px;
+            margin-bottom: 24px;
+            box-shadow: 0 3px 14px rgba(100, 50, 10, 0.08);
+        }
+
+        .filters {
+            display: flex;
+            align-items: end;
+            flex-wrap: wrap;
+            gap: 14px;
+        }
+
+        .filter-field,
+        .search-field {
+            flex: 1;
+            min-width: 220px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 7px;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        input,
+        select {
+            width: 100%;
+            padding: 11px 12px;
+            border: 1px solid #ddd;
+            border-radius: 7px;
+            font-size: 14px;
+            background: white;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 10px 14px;
+            border: none;
+            border-radius: 7px;
+            text-decoration: none;
+            font-size: 13px;
+            font-weight: bold;
+            cursor: pointer;
+            text-align: center;
+            white-space: nowrap;
+        }
+
+        .btn-primary {
+            background: #f97316;
+            color: white;
+        }
+
+        .btn-secondary {
+            background: #fff0e3;
+            color: #9a3412;
+        }
+
+        .btn-success {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .btn-danger {
+            background: #fee2e2;
+            color: #b91c1c;
+        }
+
+        .btn:hover {
+            opacity: 0.88;
+        }
+
+        .table-heading {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 18px;
+        }
+
+        .table-heading h2,
+        .detail-title {
+            margin: 0;
+            color: #9a3412;
+        }
+
+        .table-wrapper {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 720px;
+        }
+
+        th,
+        td {
+            padding: 14px 12px;
+            border-bottom: 1px solid #f0e5dc;
+            text-align: left;
+            font-size: 14px;
+        }
+
+        th {
+            background: #fff1e6;
+            color: #9a3412;
+        }
+
+        tbody tr:hover {
+            background: #fffaf6;
+        }
+
+        .status {
+            display: inline-block;
+            padding: 6px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .available {
+            color: #166534;
+            background: #dcfce7;
+        }
+
+        .unavailable {
+            color: #991b1b;
+            background: #fee2e2;
+        }
+
+        .detail-card {
+            display: grid;
+            grid-template-columns: minmax(200px, 320px) minmax(0, 1fr);
+            gap: 25px;
+            align-items: start;
+        }
+
+        .menu-image {
+            width: 100%;
+            height: 230px;
+            object-fit: cover;
+            border-radius: 10px;
+            background: #fff1e6;
+        }
+
+        .image-placeholder {
+            min-height: 180px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 10px;
+            background: #fff1e6;
+            color: #9a3412;
+        }
+
+        .detail-info h2 {
+            margin: 0 0 12px;
+            color: #9a3412;
+        }
+
+        .detail-info p {
+            line-height: 1.6;
+            overflow-wrap: anywhere;
+        }
+
+        .detail-label {
+            font-weight: bold;
+            color: #555;
+        }
+
+        .actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 9px;
+            margin-top: 20px;
+        }
+
+        .actions form {
+            margin: 0;
+        }
+
+        .notice {
+            padding: 12px 15px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            font-size: 14px;
+        }
+
+        .notice-success {
+            color: #166534;
+            background: #dcfce7;
+        }
+
+        .notice-error {
+            color: #991b1b;
+            background: #fee2e2;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 35px 15px;
+            color: #777;
+        }
+
+        .empty-state h3 {
+            color: #9a3412;
+        }
+
+        .count-text {
+            color: #777;
+            font-size: 13px;
+        }
+
+        @media (max-width: 700px) {
+            .container {
+                width: 95%;
+            }
+
+            .panel {
+                padding: 16px;
+            }
+
+            .detail-card {
+                grid-template-columns: 1fr;
+            }
+
+            .menu-image {
+                height: 200px;
+            }
+
+            h1 {
+                font-size: 24px;
+            }
+        }
+    </style>
 </head>
-
 
 <body>
 
-
-<!-- ============================= -->
-<!-- NAVBAR -->
-<!-- ============================= -->
-
 <nav class="navbar">
-
-
-    <div class="logo">
-
-        Food<span>corner</span>
-
-    </div>
-
+    <div class="brand">🍽 Foodcorner Admin</div>
 
     <div class="nav-links">
-
-
-        <a
-            href="<%= request.getContextPath() %>/adminDashboard"
-
-            class="dashboard-btn">
-
-            Dashboard
-
-        </a>
-
-
-        <a
-            href="<%= request.getContextPath() %>/adminRestaurants"
-
-            class="restaurant-btn">
-
-            Restaurants
-
-        </a>
-
-
-        <a
-            href="<%= request.getContextPath() %>/restaurant"
-
-            class="website-btn">
-
-            🌐 Visit Website
-
-        </a>
-
-
-        <a
-            href="<%= request.getContextPath() %>/logout"
-
-            class="logout-btn">
-
-            Logout
-
-        </a>
-
-
+        <a href="<%= request.getContextPath() %>/adminDashboard">Dashboard</a>
+        <a href="<%= request.getContextPath() %>/adminRestaurants">Restaurants</a>
+        <a href="<%= request.getContextPath() %>/adminOrders">Orders</a>
+        <a href="<%= request.getContextPath() %>/adminCustomers">Customers</a>
+        <a href="<%= request.getContextPath() %>/restaurant">Website</a>
+        <a href="<%= request.getContextPath() %>/logout">Logout</a>
     </div>
-
-
 </nav>
-
-
-
-<!-- ============================= -->
-<!-- HEADER -->
-<!-- ============================= -->
-
-<section class="page-header">
-
-
-    <div class="header-container">
-
-
-        <div>
-
-
-            <h1>
-
-                Manage
-
-                <span>
-
-                    Menu
-
-                </span>
-
-            </h1>
-
-
-            <p>
-
-                Add food items, update prices,
-                edit descriptions and images,
-                manage availability and remove
-                menu items from Foodcorner.
-
-            </p>
-
-
-        </div>
-
-
-        <%
-        if (selectedRestaurantId != null) {
-        %>
-
-        <a
-            href="<%= request.getContextPath() %>/addMenu?restaurantId=<%= selectedRestaurantId %>"
-
-            class="add-btn">
-
-            + Add Menu Item
-
-        </a>
-
-        <%
-        } else {
-        %>
-
-        <a
-            href="<%= request.getContextPath() %>/addMenu"
-
-            class="add-btn">
-
-            + Add Menu Item
-
-        </a>
-
-        <%
-        }
-        %>
-
-
-    </div>
-
-
-</section>
-
-
-
-<!-- ============================= -->
-<!-- MAIN -->
-<!-- ============================= -->
 
 <main class="container">
 
-
-<!-- ============================= -->
-<!-- MESSAGES -->
-<!-- ============================= -->
-
-<%
-if ("true".equals(added)) {
-%>
-
-<div class="message success">
-
-    ✓ Menu item added successfully.
-
-</div>
-
-<%
-}
-%>
-
-
-<%
-if ("true".equals(updated)) {
-%>
-
-<div class="message success">
-
-    ✓ Menu item updated successfully.
-
-</div>
-
-<%
-}
-%>
-
-
-<%
-if ("true".equals(deleted)) {
-%>
-
-<div class="message success">
-
-    ✓ Menu item deleted successfully.
-
-</div>
-
-<%
-}
-%>
-
-
-<%
-if ("true".equals(error)) {
-%>
-
-<div class="message error">
-
-    Something went wrong.
-    Please try again.
-
-</div>
-
-<%
-}
-%>
-
-
-<%
-if ("delete".equals(error)) {
-%>
-
-<div class="message error">
-
-    This menu item cannot be deleted because
-    it is linked to an existing order.
-    Please mark the item as unavailable instead.
-
-</div>
-
-<%
-}
-%>
-
-
-
-<!-- ============================= -->
-<!-- FILTER -->
-<!-- ============================= -->
-
-<div class="filter-card">
-
-
-    <div class="filter-left">
-
-
-        <h3>
-
-            Filter by Restaurant
-
-        </h3>
-
-
-        <p>
-
-            Select a restaurant to view
-            and manage only its menu items.
-
-        </p>
-
-
-    </div>
-
-
-
-    <form
-        action="<%= request.getContextPath() %>/adminMenus"
-
-        method="get"
-
-        class="filter-form">
-
-
-        <select
-            name="restaurantId"
-
-            class="filter-select"
-
-            required>
-
-
-            <option value="">
-
-                Select Restaurant
-
-            </option>
-
-
-<%
-
-if (restaurants != null) {
-
-    for (Restaurant restaurant :
-            restaurants) {
-
-%>
-
-
-            <option
-                value="<%= restaurant.getRestaurantId() %>"
-
-                <%= selectedRestaurantId != null &&
-                    selectedRestaurantId.intValue()
-                    == restaurant.getRestaurantId()
-                    ? "selected"
-                    : "" %>>
-
-
-                <%= restaurant.getName() %>
-
-            </option>
-
-
-<%
-
-    }
-}
-
-%>
-
-
-        </select>
-
-
-        <button
-            type="submit"
-
-            class="filter-btn">
-
-            Filter
-
-        </button>
-
-
-        <a
-            href="<%= request.getContextPath() %>/adminMenus"
-
-            class="clear-btn">
-
-            Show All
-
+    <div class="page-heading">
+        <div>
+            <h1>Manage Menu Items</h1>
+            <p class="subtitle">Search, view, edit and manage restaurant menu items.</p>
+        </div>
+
+        <a class="btn btn-primary"
+           href="<%= request.getContextPath() %>/addMenu<%= !restaurantFilter.isEmpty() ? "?restaurantId=" + esc(restaurantFilter) : "" %>">
+            + Add Menu Item
         </a>
-
-
-    </form>
-
-
-</div>
-
-
-
-<!-- ============================= -->
-<!-- SELECTED RESTAURANT -->
-<!-- ============================= -->
-
-<%
-
-if (selectedRestaurant != null) {
-
-%>
-
-
-<div class="selected-info">
-
-    Showing menu items for
-
-    <strong>
-
-        <%= selectedRestaurant.getName() %>
-
-    </strong>
-
-    &nbsp; | &nbsp;
-
-    Restaurant ID:
-
-    <strong>
-
-        <%= selectedRestaurant.getRestaurantId() %>
-
-    </strong>
-
-</div>
-
-
-<%
-
-}
-
-%>
-
-
-
-<!-- ============================= -->
-<!-- TOP BAR -->
-<!-- ============================= -->
-
-<div class="top-bar">
-
-
-    <div class="item-count">
-
-        Total Menu Items:
-
-        <strong>
-
-            <%= menus != null
-                    ? menus.size()
-                    : 0 %>
-
-        </strong>
-
     </div>
 
+    <% if ("true".equalsIgnoreCase(added)) { %>
+        <div class="notice notice-success">Menu item added successfully.</div>
+    <% } %>
 
-    <div class="admin-info">
+    <% if ("true".equalsIgnoreCase(updated)) { %>
+        <div class="notice notice-success">Menu item updated successfully.</div>
+    <% } %>
 
-        Logged in as
+    <% if ("true".equalsIgnoreCase(deleted)) { %>
+        <div class="notice notice-success">Menu item deleted successfully.</div>
+    <% } %>
 
-        <strong>
+    <% if (error != null && !error.isEmpty()) { %>
+        <div class="notice notice-error">The requested operation could not be completed. Please try again.</div>
+    <% } %>
 
-            <%= admin.getUsername() %>
+    <section class="panel">
+        <form class="filters" method="get"
+              action="<%= request.getContextPath() %>/adminMenus">
 
-        </strong>
+            <div class="filter-field">
+                <label for="restaurantId">Filter by Restaurant</label>
 
-    </div>
+                <select id="restaurantId" name="restaurantId">
+                    <option value="">All Restaurants</option>
 
-
-</div>
-
-
-
-<!-- ============================= -->
-<!-- MENU LIST -->
-<!-- ============================= -->
-
-<%
-
-if (menus != null &&
-    !menus.isEmpty()) {
-
-%>
-
-
-<div class="menu-grid">
-
-
-<%
-
-    for (Menu menu : menus) {
-
-
-        String imagePath =
-                menu.getImagePath();
-
-
-        String imageUrl = null;
-
-
-        if (imagePath != null &&
-            !imagePath.trim().isEmpty()) {
-
-
-            if (
-                imagePath.startsWith("http://")
-                ||
-                imagePath.startsWith("https://")
-            ) {
-
-                imageUrl =
-                        imagePath.trim();
-
-            } else {
-
-                String cleanedPath =
-                        imagePath.trim();
-
-
-                if (cleanedPath.startsWith("/")) {
-
-                    cleanedPath =
-                        cleanedPath.substring(1);
-                }
-
-
-                imageUrl =
-                        request.getContextPath()
-                        + "/"
-                        + cleanedPath;
-            }
-        }
-
-
-        String restaurantName =
-                restaurantNames.get(
-                        menu.getRestaurantId()
-                );
-
-
-        if (restaurantName == null) {
-
-            restaurantName =
-                    "Restaurant #"
-                    + menu.getRestaurantId();
-        }
-
-%>
-
-
-
-<!-- ============================= -->
-<!-- MENU CARD -->
-<!-- ============================= -->
-
-<div class="menu-card">
-
-
-
-    <!-- IMAGE -->
-
-    <div class="image-container">
-
-
-        <%
-        if (imageUrl != null) {
-        %>
-
-
-        <img
-            src="<%= imageUrl %>"
-
-            alt="<%= menu.getItemName() %>"
-
-            class="menu-image"
-
-            onerror="
-                this.style.display='none';
-                this.nextElementSibling.style.display='flex';
-            ">
-
-
-        <div
-            class="image-placeholder"
-
-            style="display:none;">
-
-
-            <div class="placeholder-icon">
-
-                🍜
-
+                    <%
+                        if (restaurants != null) {
+                            for (Restaurant restaurant : restaurants) {
+                    %>
+                                <option value="<%= restaurant.getRestaurantId() %>"
+                                    <%= String.valueOf(restaurant.getRestaurantId()).equals(restaurantFilter)
+                                        ? "selected" : "" %>>
+                                    <%= esc(restaurant.getName()) %>
+                                </option>
+                    <%
+                            }
+                        }
+                    %>
+                </select>
             </div>
 
+            <button type="submit" class="btn btn-primary">Apply Filter</button>
 
+            <a class="btn btn-secondary"
+               href="<%= request.getContextPath() %>/adminMenus">Show All</a>
+        </form>
+    </section>
+
+    <section class="panel">
+        <div class="table-heading">
             <div>
-
-                Image not available
-
+                <h2>Menu Items</h2>
+                <p class="count-text">
+                    <%= menus == null ? 0 : menus.size() %> item(s) loaded
+                </p>
             </div>
 
-
+            <div class="search-field">
+                <label for="menuSearch">Search Menu Items</label>
+                <input type="text" id="menuSearch"
+                       placeholder="Search by ID, name, restaurant or description">
+            </div>
         </div>
 
+        <% if (menus != null && !menus.isEmpty()) { %>
 
-        <%
-        } else {
-        %>
+            <div class="table-wrapper">
+                <table id="menuTable">
+                    <thead>
+                        <tr>
+                            <th>Menu ID</th>
+                            <th>Item Name</th>
+                            <th>Restaurant</th>
+                            <th>Price</th>
+                            <th>Status</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
 
+                    <tbody>
+                    <%
+                        for (Menu menu : menus) {
+                            String restaurantName =
+                                restaurantNames.get(menu.getRestaurantId());
 
-        <div class="image-placeholder">
+                            if (restaurantName == null) {
+                                restaurantName =
+                                    "Restaurant #" + menu.getRestaurantId();
+                            }
 
+                            String menuDescription = menu.getDescription() == null
+                                ? ""
+                                : menu.getDescription();
 
-            <div class="placeholder-icon">
+                            String searchText =
+                                menu.getMenuId() + " " +
+                                menu.getItemName() + " " +
+                                restaurantName + " " +
+                                menuDescription;
+                    %>
+                        <tr class="menu-row"
+                            data-search="<%= esc(searchText) %>">
 
-                🍜
+                            <td><%= menu.getMenuId() %></td>
+                            <td><strong><%= esc(menu.getItemName()) %></strong></td>
+                            <td><%= esc(restaurantName) %></td>
+                            <td>₹<%= String.format("%.2f", menu.getPrice()) %></td>
 
+                            <td>
+                                <% if (menu.isAvailable()) { %>
+                                    <span class="status available">Available</span>
+                                <% } else { %>
+                                    <span class="status unavailable">Unavailable</span>
+                                <% } %>
+                            </td>
+
+                            <td>
+                                <a class="btn btn-secondary"
+                                   href="<%= request.getContextPath() %>/adminMenus?viewId=<%= menu.getMenuId() %><%= !restaurantFilter.isEmpty() ? "&restaurantId=" + esc(restaurantFilter) : "" %>">
+                                    View Details
+                                </a>
+                            </td>
+                        </tr>
+                    <%
+                        }
+                    %>
+                    </tbody>
+                </table>
             </div>
 
-
-            <div>
-
-                No Menu Image
-
+            <div id="noSearchResults" class="empty-state" style="display:none;">
+                No menu items match your search.
             </div>
 
+        <% } else { %>
 
-        </div>
+            <div class="empty-state">
+                <h3>No Menu Items Found</h3>
+                <p>There are no menu items for the selected restaurant.</p>
 
+                <a class="btn btn-primary"
+                   href="<%= request.getContextPath() %>/addMenu<%= !restaurantFilter.isEmpty() ? "?restaurantId=" + esc(restaurantFilter) : "" %>">
+                    + Add Menu Item
+                </a>
+            </div>
 
-        <%
-        }
-        %>
+        <% } %>
+    </section>
 
+    <%
+        if (selectedMenu != null) {
+            String selectedMenuRestaurant =
+                restaurantNames.get(selectedMenu.getRestaurantId());
 
-
-        <div class="menu-id">
-
-            Menu #<%= menu.getMenuId() %>
-
-        </div>
-
-
-        <div
-            class="availability
-            <%= menu.isAvailable()
-                    ? "available"
-                    : "unavailable" %>">
-
-
-            <%= menu.isAvailable()
-                    ? "AVAILABLE"
-                    : "UNAVAILABLE" %>
-
-
-        </div>
-
-
-    </div>
-
-
-
-    <!-- BODY -->
-
-    <div class="card-body">
-
-
-
-        <!-- ITEM NAME -->
-
-        <div class="item-name">
-
-            <%= menu.getItemName() %>
-
-        </div>
-
-
-
-        <!-- RESTAURANT -->
-
-        <div class="restaurant-name">
-
-            🍽 <%= restaurantName %>
-
-        </div>
-
-
-
-        <!-- DESCRIPTION -->
-
-        <div class="description">
-
-
-            <%
-
-            if (menu.getDescription() == null ||
-                menu.getDescription()
-                    .trim()
-                    .isEmpty()) {
-
-            %>
-
-                No description available.
-
-            <%
-
-            } else {
-
-            %>
-
-                <%= menu.getDescription() %>
-
-            <%
-
+            if (selectedMenuRestaurant == null) {
+                selectedMenuRestaurant =
+                    "Restaurant #" + selectedMenu.getRestaurantId();
             }
 
-            %>
+            String imagePath = selectedMenu.getImagePath();
+    %>
 
+        <section class="panel" id="menuDetails">
+            <div class="table-heading">
+                <div>
+                    <h2 class="detail-title">Menu Item Details</h2>
+                    <p class="subtitle">
+                        Menu ID: <%= selectedMenu.getMenuId() %>
+                    </p>
+                </div>
 
-        </div>
+                <a class="btn btn-secondary"
+                   href="<%= request.getContextPath() %>/adminMenus<%= !restaurantFilter.isEmpty() ? "?restaurantId=" + esc(restaurantFilter) : "" %>">
+                    Back to List
+                </a>
+            </div>
 
+            <div class="detail-card">
+                <div>
+                    <% if (imagePath != null && !imagePath.trim().isEmpty()) { %>
+                        <img class="menu-image"
+                             src="<%= esc(imagePath) %>"
+                             alt="<%= esc(selectedMenu.getItemName()) %>"
+                             onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
 
+                        <div class="image-placeholder" style="display:none;">
+                            Image unavailable
+                        </div>
+                    <% } else { %>
+                        <div class="image-placeholder">No image available</div>
+                    <% } %>
+                </div>
 
-        <!-- PRICE -->
+                <div class="detail-info">
+                    <h2><%= esc(selectedMenu.getItemName()) %></h2>
 
-        <div class="price-row">
+                    <p>
+                        <span class="detail-label">Restaurant:</span>
+                        <%= esc(selectedMenuRestaurant) %>
+                    </p>
 
+                    <p>
+                        <span class="detail-label">Price:</span>
+                        ₹<%= String.format("%.2f", selectedMenu.getPrice()) %>
+                    </p>
 
-            <span class="price-label">
+                    <p>
+                        <span class="detail-label">Availability:</span>
 
-                Price
+                        <% if (selectedMenu.isAvailable()) { %>
+                            <span class="status available">Available</span>
+                        <% } else { %>
+                            <span class="status unavailable">Unavailable</span>
+                        <% } %>
+                    </p>
 
-            </span>
+                    <p>
+                        <span class="detail-label">Description:</span><br>
+                        <%= selectedMenu.getDescription() == null ||
+                            selectedMenu.getDescription().trim().isEmpty()
+                            ? "No description available."
+                            : esc(selectedMenu.getDescription()) %>
+                    </p>
 
+                    <p>
+                        <span class="detail-label">Image Path:</span><br>
+                        <%= imagePath == null || imagePath.trim().isEmpty()
+                            ? "No image path provided."
+                            : esc(imagePath) %>
+                    </p>
 
-            <span class="price">
+                    <div class="actions">
+                        <a class="btn btn-primary"
+                           href="<%= request.getContextPath() %>/editMenu?menuId=<%= selectedMenu.getMenuId() %>">
+                            Edit Menu Item
+                        </a>
 
-                ₹<%= String.format(
-                        "%.2f",
-                        menu.getPrice()
-                ) %>
+                        <form method="post"
+                              action="<%= request.getContextPath() %>/toggleMenuAvailability"
+                              onsubmit="return confirm('Change the availability of this menu item?');">
 
-            </span>
+                            <input type="hidden" name="menuId"
+                                   value="<%= selectedMenu.getMenuId() %>">
 
+                            <input type="hidden" name="restaurantId"
+                                   value="<%= selectedMenu.getRestaurantId() %>">
 
-        </div>
+                            <button type="submit" class="btn btn-success">
+                                <%= selectedMenu.isAvailable()
+                                    ? "Make Unavailable"
+                                    : "Make Available" %>
+                            </button>
+                        </form>
 
+                        <form method="post"
+                              action="<%= request.getContextPath() %>/deleteMenu"
+                              onsubmit="return confirm('Are you sure you want to delete this menu item? This action cannot be undone.');">
 
+                            <input type="hidden" name="menuId"
+                                   value="<%= selectedMenu.getMenuId() %>">
 
-        <!-- IMAGE PATH -->
+                            <input type="hidden" name="restaurantId"
+                                   value="<%= selectedMenu.getRestaurantId() %>">
 
-        <div class="image-path">
+                            <button type="submit" class="btn btn-danger">
+                                Delete Menu Item
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </section>
 
+    <% } else if (viewId != null) { %>
 
-            <span class="image-path-label">
+        <section class="panel">
+            <div class="notice notice-error">
+                The selected menu item was not found in the current list.
+                Try changing the restaurant filter or returning to the menu list.
+            </div>
 
-                Menu Image Path
-
-            </span>
-
-
-            <span class="image-path-value">
-
-
-                <%
-
-                if (menu.getImagePath() == null ||
-                    menu.getImagePath()
-                        .trim()
-                        .isEmpty()) {
-
-                %>
-
-                    No image path provided
-
-                <%
-
-                } else {
-
-                %>
-
-                    <%= menu.getImagePath() %>
-
-                <%
-
-                }
-
-                %>
-
-
-            </span>
-
-
-        </div>
-
-
-
-        <!-- ============================= -->
-        <!-- ACTIONS -->
-        <!-- ============================= -->
-
-        <div class="actions">
-
-
-
-            <!-- EDIT -->
-
-            <a
-                href="<%= request.getContextPath() %>/editMenu?menuId=<%= menu.getMenuId() %>"
-
-                class="action-btn edit-btn">
-
-                Edit
-
+            <a class="btn btn-secondary"
+               href="<%= request.getContextPath() %>/adminMenus<%= !restaurantFilter.isEmpty() ? "?restaurantId=" + esc(restaurantFilter) : "" %>">
+                Back to Menu List
             </a>
+        </section>
 
-
-
-            <!-- AVAILABILITY -->
-
-            <form
-                action="<%= request.getContextPath() %>/toggleMenuAvailability"
-
-                method="post"
-
-                class="action-form"
-
-                onsubmit="
-                    return confirm(
-                        '<%= menu.isAvailable()
-                                ? "Make this menu item unavailable?"
-                                : "Make this menu item available?" %>'
-                    );
-                ">
-
-
-                <input
-                    type="hidden"
-
-                    name="menuId"
-
-                    value="<%= menu.getMenuId() %>">
-
-
-                <input
-                    type="hidden"
-
-                    name="restaurantId"
-
-                    value="<%= menu.getRestaurantId() %>">
-
-
-                <button
-                    type="submit"
-
-                    class="action-btn availability-btn">
-
-
-                    <%= menu.isAvailable()
-                            ? "Make Unavailable"
-                            : "Make Available" %>
-
-
-                </button>
-
-
-            </form>
-
-
-
-            <!-- DELETE -->
-
-            <form
-                action="<%= request.getContextPath() %>/deleteMenu"
-
-                method="post"
-
-                class="action-form"
-
-                onsubmit="
-                    return confirm(
-                        'Are you sure you want to permanently delete this menu item?'
-                    );
-                ">
-
-
-                <input
-                    type="hidden"
-
-                    name="menuId"
-
-                    value="<%= menu.getMenuId() %>">
-
-
-                <input
-                    type="hidden"
-
-                    name="restaurantId"
-
-                    value="<%= menu.getRestaurantId() %>">
-
-
-                <button
-                    type="submit"
-
-                    class="action-btn delete-btn">
-
-                    Delete
-
-                </button>
-
-
-            </form>
-
-
-        </div>
-
-
-    </div>
-
-
-</div>
-
-
-<%
-
-    }
-
-%>
-
-
-</div>
-
-
-<%
-
-} else {
-
-%>
-
-
-
-<!-- ============================= -->
-<!-- EMPTY -->
-<!-- ============================= -->
-
-<div class="empty-state">
-
-
-    <div class="empty-icon">
-
-        🍜
-
-    </div>
-
-
-    <h2>
-
-        No Menu Items Found
-
-    </h2>
-
-
-    <p>
-
-        There are currently no menu items
-        available for this selection.
-
-    </p>
-
-
-    <%
-
-    if (selectedRestaurantId != null) {
-
-    %>
-
-
-    <a
-        href="<%= request.getContextPath() %>/addMenu?restaurantId=<%= selectedRestaurantId %>"
-
-        class="add-btn">
-
-        + Add Menu Item
-
-    </a>
-
-
-    <%
-
-    } else {
-
-    %>
-
-
-    <a
-        href="<%= request.getContextPath() %>/addMenu"
-
-        class="add-btn">
-
-        + Add Menu Item
-
-    </a>
-
-
-    <%
-
-    }
-
-    %>
-
-
-</div>
-
-
-<%
-
-}
-
-%>
-
+    <% } %>
 
 </main>
 
+<script>
+    const menuSearch = document.getElementById("menuSearch");
+    const menuRows = document.querySelectorAll(".menu-row");
+    const noSearchResults = document.getElementById("noSearchResults");
 
+    if (menuSearch) {
+        menuSearch.addEventListener("input", function () {
+            const query = this.value.toLowerCase().trim();
+            let visibleCount = 0;
 
-<!-- ============================= -->
-<!-- FOOTER -->
-<!-- ============================= -->
+            menuRows.forEach(function (row) {
+                const searchableText =
+                    (row.getAttribute("data-search") || "").toLowerCase();
 
-<footer>
+                const matches = searchableText.includes(query);
 
-    © 2026
+                row.style.display = matches ? "" : "none";
 
-    <span>
+                if (matches) {
+                    visibleCount++;
+                }
+            });
 
-        Foodcorner
+            if (noSearchResults) {
+                noSearchResults.style.display =
+                    visibleCount === 0 ? "block" : "none";
+            }
+        });
+    }
 
-    </span>
+    const menuDetails = document.getElementById("menuDetails");
 
-    Admin Panel
-
-</footer>
-
+    if (menuDetails) {
+        menuDetails.scrollIntoView({
+            behavior: "smooth",
+            block: "start"
+        });
+    }
+</script>
 
 </body>
-
 </html>
