@@ -1,125 +1,104 @@
 # Foodcorner – Food Delivery Website
 
-Foodcorner is a full-stack food delivery web application developed using Java, JSP, Servlets, JDBC, MySQL, HTML, CSS, and JavaScript.
+Foodcorner is a full-stack food delivery web application built using Java, JSP, Jakarta Servlets, JDBC, MySQL, HTML, CSS, and JavaScript.
 
-The application allows users to browse restaurants, explore menus, add food items to a cart, place orders, view order history, manage their profile, and track order status. It also includes an admin panel for managing restaurants, menu items, customers, and orders.
+The application allows customers to browse restaurants, explore menus, manage their shopping cart, place orders, make test payments through PayU Hosted Checkout, view order history, check order status, and manage their profiles. It also includes an admin panel for managing restaurants, menu items, customers, and orders.
 
 ## Features
 
 ### Customer Module
-- User Registration and Login
-- Browse Restaurants
-- View Restaurant Menus
-- Add Items to Cart
-- Update Cart Quantity
-- Remove Items from Cart
-- Checkout and Place Orders
-- View Order History
-- View Order Details
-- Cancel Pending Orders
-- Edit User Profile
+- User registration and login
+- Browse restaurants and explore menus
+- Add food items to the cart
+- Increase or decrease item quantities
+- Remove items from the cart
+- Checkout and place orders
+- Choose an available payment method
+- PayU Hosted Checkout integration in test mode
+- View payment status and order results
+- View order history and order details
+- Cancel pending orders
+- Edit customer profile
 - Logout
 
 ### Admin Module
-- Admin Dashboard
-- Add Restaurants
-- Edit Restaurants
-- Enable or Disable Restaurants
-- Delete Restaurants
-- Manage Menu Items
-- Add Menu Items
-- Edit Menu Items
-- Enable or Disable Menu Availability
-- Delete Menu Items
-- View Customer Details
-- View Orders
+- Admin dashboard
+- Add, edit, enable, disable, and delete restaurants
+- Manage restaurant menu items
+- Add, edit, enable, disable, and delete menu items
+- View customer details
+- View customer orders
+- Manage restaurant and menu information
 
-## Hero Section
+## Homepage and Hero Section
 
-The homepage includes a professional looping food video in the hero section.
+The homepage features a looping food video designed to create a modern food delivery experience.
 
-The video is:
-- Auto-played
-- Muted
-- Looped continuously
-- Responsive
-- Displayed with an overlay and call-to-action button
+The hero video supports:
+- Automatic playback
+- Muted audio
+- Continuous looping
+- Responsive display
+- A visual overlay
+- A call-to-action button
 
-This creates a modern food delivery website experience.
+The homepage also includes Foodcorner branding, navigation, restaurant exploration, feature sections, promotional content, and a footer.
 
 ## Technologies Used
 
-### Backend
-- Java
-- Jakarta Servlets
-- JSP
-- JDBC
-- DAO Design Pattern
-
-### Frontend
-- HTML5
-- CSS3
-- JavaScript
-- JSP
-
-### Database
-- MySQL 8.0
-
-### Server
-- Apache Tomcat 10.1
-
-### Build Tool
-- Maven
-
-### IDE
-- Eclipse IDE
-
-### Version Control
-- Git
-- GitHub
+| Category | Technologies |
+|---|---|
+| Backend | Java, Jakarta Servlets, JSP |
+| Frontend | HTML5, CSS3, JavaScript |
+| Database | MySQL 8.0 |
+| Database connectivity | JDBC |
+| Architecture | DAO Design Pattern |
+| Payment gateway | PayU Hosted Checkout (test mode) |
+| Web server | Apache Tomcat 10.1 |
+| Build tool | Apache Maven |
+| IDE | Eclipse IDE |
+| Version control | Git and GitHub |
 
 ## Project Architecture
 
-The application follows a layered architecture:
+Foodcorner follows a layered architecture that separates the presentation, request-handling, database-access, and persistence responsibilities.
 
 ```text
 Frontend
 HTML / CSS / JavaScript / JSP
-        ↓
+             ↓
 Servlet Controllers
-        ↓
-DAO Layer
-        ↓
-DAO Implementation
-        ↓
+             ↓
+DAO Interfaces
+             ↓
+DAO Implementations
+             ↓
 JDBC
-        ↓
+             ↓
 MySQL Database
 ```
+
+PayU payment processing is integrated into the checkout flow to handle the hosted payment request and the payment response.
 
 ## Project Structure
 
 ```text
-Foodcorner
-│
-├── src
-│   └── main
-│       ├── java
-│       │   └── com.tap
-│       │       ├── controller
-│       │       ├── Dao
-│       │       ├── DaoImpl
-│       │       ├── model
-│       │       └── util
-│       │
-│       └── webapp
-│           ├── images
-│           │   ├── menu
-│           │   └── restaurants
-│           │
-│           ├── videos
+Foodcorner/
+├── src/
+│   └── main/
+│       ├── java/
+│       │   └── com/tap/
+│       │       ├── controller/
+│       │       ├── Dao/
+│       │       ├── DaoImpl/
+│       │       ├── model/
+│       │       └── util/
+│       └── webapp/
+│           ├── images/
+│           │   ├── menu/
+│           │   └── restaurants/
+│           ├── videos/
 │           │   └── foodcorner_hero.mp4
-│           │
 │           ├── index.html
 │           ├── restaurant.jsp
 │           ├── menu.jsp
@@ -136,61 +115,41 @@ Foodcorner
 │           ├── adminMenus.jsp
 │           ├── adminOrders.jsp
 │           └── adminCustomers.jsp
-│
 ├── pom.xml
 ├── .gitignore
 └── README.md
 ```
 
-## Database Tables
+## Database Design
 
-The project uses the following major tables:
+The application uses MySQL to store customer accounts, restaurant details, menu items, orders, and order items.
 
-```text
-user
-restaurant
-menu
-orders
-order_item
-```
+### Main Tables
 
-### User Table
-Stores customer and admin account details.
+- **user** – Stores customer and admin account information.
+- **restaurant** – Stores restaurant names, cuisine, delivery time, address, rating, status, and image paths.
+- **menu** – Stores food item names, descriptions, prices, availability, image paths, and restaurant IDs.
+- **orders** – Stores customer order details, order date, total amount, order status, payment mode, delivery address, and payment information.
+- **order_item** – Stores individual food items associated with each order, including quantities and amounts.
 
-### Restaurant Table
-Stores restaurant information including:
-- Restaurant name
-- Cuisine
-- Delivery time
-- Address
-- Rating
-- Status
-- Restaurant image
+The `orders` table also supports payment-related information such as payment status and the PayU transaction ID.
 
-### Menu Table
-Stores menu items including:
-- Item name
-- Description
-- Price
-- Availability
-- Menu image
-- Restaurant ID
+## Cart System
 
-### Orders Table
-Stores customer order information including:
-- User ID
-- Restaurant ID
-- Order date
-- Total amount
-- Payment mode
-- Order status
+The shopping cart is maintained using the HTTP session.
 
-### Order Item Table
-Stores individual food items associated with each order.
+Customers can:
+- Add food items to the cart
+- Increase or decrease quantities
+- Remove items
+- View item prices and the cart total
+- Continue to checkout
 
-## Order Status Flow
+## Order Management
 
-Foodcorner automatically manages order status based on order timing.
+The application supports order placement, order history, order details, and cancellation of pending orders.
+
+The order status flow is:
 
 ```text
 PENDING
@@ -200,29 +159,36 @@ CONFIRMED
 DELIVERED
 ```
 
-Customers can cancel an order while it is still in the `PENDING` state.
+Customers can cancel an order while it is in the `PENDING` state. Cancelled orders retain the `CANCELLED` status.
 
-Cancelled orders remain:
+## PayU Payment Integration
+
+Foodcorner integrates **PayU Hosted Checkout in test mode** for online payment processing.
+
+The integration includes:
+- Preparing the payment request
+- Generating the required PayU hash
+- Redirecting customers to the PayU hosted payment page
+- Handling the payment response
+- Recording payment-related information against the order
+
+### Payment Configuration
+
+The PayU integration uses environment variables configured in the Tomcat run configuration:
 
 ```text
-CANCELLED
+PAYU_KEY=your_test_merchant_key
+PAYU_SALT=your_test_merchant_salt
+PAYU_ENV=test
 ```
 
-## Cart System
+Use your own PayU test credentials. Never commit merchant salts, API secrets, database passwords, or other sensitive credentials to a public repository.
 
-The shopping cart is maintained using HTTP Session.
-
-The cart allows users to:
-- Add products
-- Increase quantity
-- Decrease quantity
-- Remove products
-- View cart total
-- Continue to checkout
+**Important:** The current integration is for testing. Live payments require the appropriate production credentials, configuration, and end-to-end verification before deployment.
 
 ## Restaurant and Menu Images
 
-Foodcorner uses local images stored inside the project.
+Foodcorner uses local image files stored in the project.
 
 Restaurant images:
 
@@ -236,26 +202,13 @@ Menu images:
 src/main/webapp/images/menu/
 ```
 
-Image paths are stored in the MySQL database.
+The database stores the image paths used by the application.
 
 Example:
 
 ```text
 images/menu/menu_01_masala_dosa.png
 ```
-
-## Home Page
-
-The homepage includes:
-
-- Transparent navigation bar
-- Looping food hero video
-- Foodcorner branding
-- Explore Restaurants button
-- Food delivery introduction
-- Feature cards
-- Call-to-action section
-- Footer
 
 ## How to Run the Project
 
@@ -265,19 +218,13 @@ The homepage includes:
 git clone https://github.com/Priyanka-172000/Foodcorner-Food-Delivery-Website.git
 ```
 
-### 2. Open the Project
+### 2. Import into Eclipse
 
-Import the project into Eclipse as a Maven or Dynamic Web Project.
+Import the project into Eclipse as a Maven project. Ensure the required Maven dependencies are downloaded and the project builds successfully.
 
 ### 3. Configure Apache Tomcat
 
-Use:
-
-```text
-Apache Tomcat 10.1
-```
-
-Add the Foodcorner project to the Tomcat server.
+Configure Apache Tomcat 10.1 in Eclipse and add the Foodcorner project to the server.
 
 ### 4. Configure MySQL
 
@@ -287,11 +234,11 @@ Create the database:
 CREATE DATABASE foodcorner;
 ```
 
-Import the required database tables and data.
+Import or create the required database tables and data before running the application.
 
-### 5. Configure JDBC
+### 5. Configure the JDBC Connection
 
-Update the database connection details in the JDBC utility class.
+Update the database connection settings in the JDBC utility class to match your local MySQL installation.
 
 Example:
 
@@ -301,84 +248,90 @@ String username = "root";
 String password = "YOUR_MYSQL_PASSWORD";
 ```
 
-Do not upload your actual database password publicly.
+Keep actual database credentials private. Do not commit passwords to GitHub.
 
-### 6. Run the Project
+### 6. Configure PayU (Optional)
 
-Start Apache Tomcat and open:
+To test online payments, configure the PayU test credentials in the Tomcat environment variables as described in the PayU Payment Integration section.
+
+Do not use real banking credentials on the test payment page.
+
+### 7. Run the Application
+
+Start the Tomcat server and open:
 
 ```text
 http://localhost:8080/Foodcorner/
 ```
 
+The context path may differ depending on the project configuration in Eclipse.
+
 ## Main Application Flow
 
 ```text
 Home Page
-   ↓
-Login / Register
-   ↓
-Restaurants
-   ↓
-Restaurant Menu
-   ↓
-Add to Cart
-   ↓
+    ↓
+Login / Registration
+    ↓
+Browse Restaurants
+    ↓
+View Restaurant Menu
+    ↓
+Add Items to Cart
+    ↓
 Checkout
-   ↓
-Place Order
-   ↓
-Order Success
-   ↓
-Order History
+    ↓
+Select Payment Method
+    ↓
+Place Order / PayU Test Checkout
+    ↓
+Payment Result / Order Success
+    ↓
+Order History and Order Details
 ```
 
-## Admin Flow
+## Admin Workflow
 
 ```text
 Admin Login
-   ↓
+    ↓
 Admin Dashboard
-   ↓
+    ↓
 Manage Restaurants
-   ↓
+    ↓
 Manage Menus
-   ↓
+    ↓
 View Customers
-   ↓
-View Orders
+    ↓
+View and Manage Orders
 ```
 
-## Highlights
+## Project Highlights
 
 - Full-stack Java web application
-- JSP and Servlet based architecture
+- JSP and Jakarta Servlet architecture
 - DAO design pattern
-- JDBC database integration
-- MySQL relational database
+- JDBC and MySQL integration
 - Session-based shopping cart
 - Customer and admin modules
-- Order management
-- Restaurant management
-- Menu management
-- Local image integration
-- Responsive food delivery UI
-- Auto-playing looping hero video
+- Restaurant and menu management
+- Order placement and order history
+- PayU Hosted Checkout integration in test mode
+- Local restaurant and menu images
+- Responsive food delivery interface
+- Looping homepage hero video
 - Git and GitHub version control
 
 ## Future Enhancements
 
-Possible future improvements include:
-
-- Online payment gateway integration
-- Order tracking
-- Restaurant search
-- Cuisine filters
-- Ratings and reviews
+- Production payment gateway activation and deployment
+- Restaurant search and cuisine filters
+- Customer ratings and reviews
 - Wishlist functionality
-- Email order confirmation
-- OTP authentication
+- Email order confirmations
+- OTP-based authentication
 - Delivery partner module
+- Live delivery tracking
 - Spring Boot migration
 - REST API integration
 - React frontend
@@ -388,25 +341,17 @@ Possible future improvements include:
 
 **Priyanka Deshnur**
 
-MCA Student  
-Full Stack Java Developer
+MCA Student | Aspiring Full Stack Java Developer
 
-### GitHub
-https://github.com/Priyanka-172000
-
-### Portfolio
-https://priyanka-portfolio-sigma.vercel.app/
+- **GitHub:** https://github.com/Priyanka-172000
+- **Portfolio:** https://priyanka-portfolio-sigma.vercel.app/
 
 ## Repository
 
-Foodcorner – Food Delivery Website
+[Foodcorner – Food Delivery Website](https://github.com/Priyanka-172000/Foodcorner-Food-Delivery-Website)
 
-https://github.com/Priyanka-172000/Foodcorner-Food-Delivery-Website
-
-## License
-
-## 📄 Project Usage
+## Project Usage
 
 This project was developed for educational, learning, and portfolio purposes.
 
-If you are interested in the project, want to discuss the implementation, collaborate, or have any queries, feel free to connect with me through GitHub or LinkedIn.
+If you are interested in the project, would like to discuss its implementation, or want to collaborate, feel free to connect through GitHub or LinkedIn.
