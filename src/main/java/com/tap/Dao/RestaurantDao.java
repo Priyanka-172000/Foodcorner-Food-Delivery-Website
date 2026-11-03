@@ -1,6 +1,9 @@
 package com.tap.Dao;
 
 import java.util.List;
+
+import com.tap.model.FoodCategory;
+import com.tap.model.PopularRestaurant;
 import com.tap.model.Restaurant;
 
 public interface RestaurantDao {
@@ -12,6 +15,12 @@ public interface RestaurantDao {
     List<Restaurant> getAllRestaurants();
 
     List<Restaurant> getActiveRestaurants();
+
+    List<Restaurant> getAvailableRestaurants(String searchQuery, int categoryId);
+
+    List<FoodCategory> getAvailableCategories();
+
+    List<PopularRestaurant> getPopularRestaurants();
 
     void updateRestaurant(Restaurant restaurant);
 

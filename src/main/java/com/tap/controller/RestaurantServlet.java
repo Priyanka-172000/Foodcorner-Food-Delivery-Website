@@ -2,9 +2,11 @@
 package com.tap.controller;
 
 import java.io.IOException;
+import java.util.Collections;
 import java.util.List;
 
 import com.tap.DaoImpl.RestaurantDaoImpl;
+import com.tap.model.FoodCategory;
 import com.tap.model.Restaurant;
 
 import jakarta.servlet.ServletException;
@@ -25,45 +27,74 @@ public class RestaurantServlet extends HttpServlet {
         req.setCharacterEncoding("UTF-8");
 
         String searchQuery = req.getParameter("search");
+        String categoryIdParam = req.getParameter("categoryId");
 
-        if (searchQuery == null) {
-            searchQuery = "";
+        searchQuery = searchQuery == null ? "" : searchQuery.trim();
+
+        int categoryId = 0;
+
+        if (categoryIdParam != null && !categoryIdParam.trim().isEmpty()) {
+            try {
+                categoryId = Integer.parseInt(categoryIdParam.trim());
+
+                if (categoryId < 0) {
+                    categoryId = 0;
+                }
+
+            } catch (NumberFormatException e) {
+                categoryId = 0;
+            }
         }
-
-        searchQuery = searchQuery.trim();
 
         RestaurantDaoImpl restaurantDao = new RestaurantDaoImpl();
 
-        List<Restaurant> restaurants;
+        if ("categories".equalsIgnoreCase(req.getParameter("ajax"))) {
 
-        if (searchQuery.isEmpty()) {
-            restaurants = restaurantDao.getAllRestaurants();
-        } else {
-            restaurants = restaurantDao.searchRestaurants(searchQuery);
-        }
+            List<FoodCategory> categories =
+                    restaurantDao.getAvailableCategories();
 
-        if (restaurants == null) {
-            restaurants = java.util.Collections.emptyList();
-        }
+            if (categories == null) {
+                categories = Collections.emptyList();
+            }
 
-        if ("true".equalsIgnoreCase(req.getParameter("ajax"))) {
             resp.setCharacterEncoding("UTF-8");
             resp.setContentType("application/json;charset=UTF-8");
             resp.setHeader("Cache-Control", "no-store");
-            resp.getWriter().write(toJson(restaurants));
+
+            resp.getWriter().write(categoriesToJson(categories));
+            return;
+        }
+
+        List<Restaurant> restaurants =
+                restaurantDao.getAvailableRestaurants(searchQuery, categoryId);
+
+        if (restaurants == null) {
+            restaurants = Collections.emptyList();
+        }
+
+        if ("true".equalsIgnoreCase(req.getParameter("ajax"))) {
+
+            resp.setCharacterEncoding("UTF-8");
+            resp.setContentType("application/json;charset=UTF-8");
+            resp.setHeader("Cache-Control", "no-store");
+
+            resp.getWriter().write(restaurantsToJson(restaurants));
             return;
         }
 
         req.setAttribute("restaurants", restaurants);
         req.setAttribute("searchQuery", searchQuery);
+        req.setAttribute("selectedCategory", categoryId);
 
         req.getRequestDispatcher("/restaurant.jsp").forward(req, resp);
     }
 
-    private String toJson(List<Restaurant> restaurants) {
+    private String restaurantsToJson(List<Restaurant> restaurants) {
+
         StringBuilder json = new StringBuilder("[");
 
         for (int i = 0; i < restaurants.size(); i++) {
+
             Restaurant restaurant = restaurants.get(i);
 
             if (i > 0) {
@@ -95,14 +126,41 @@ public class RestaurantServlet extends HttpServlet {
                 .append(',')
                 .append("\"imagePath\":\"")
                 .append(jsonEscape(restaurant.getImagePath()))
-                .append("\"")
-                .append('}');
+                .append("\"}");
+        }
+
+        return json.append(']').toString();
+    }
+
+    private String categoriesToJson(List<FoodCategory> categories) {
+
+        StringBuilder json = new StringBuilder("[");
+
+        for (int i = 0; i < categories.size(); i++) {
+
+            FoodCategory category = categories.get(i);
+
+            if (i > 0) {
+                json.append(',');
+            }
+
+            json.append('{')
+                .append("\"categoryId\":")
+                .append(category.getCategoryId())
+                .append(',')
+                .append("\"categoryName\":\"")
+                .append(jsonEscape(category.getCategoryName()))
+                .append("\",")
+                .append("\"imagePath\":\"")
+                .append(jsonEscape(category.getImagePath()))
+                .append("\"}");
         }
 
         return json.append(']').toString();
     }
 
     private String jsonEscape(String value) {
+
         if (value == null) {
             return "";
         }
@@ -110,37 +168,31 @@ public class RestaurantServlet extends HttpServlet {
         StringBuilder escaped = new StringBuilder(value.length() + 16);
 
         for (int i = 0; i < value.length(); i++) {
+
             char c = value.charAt(i);
 
             switch (c) {
                 case '"':
                     escaped.append("\\\"");
                     break;
-
                 case '\\':
                     escaped.append("\\\\");
                     break;
-
                 case '\b':
                     escaped.append("\\b");
                     break;
-
                 case '\f':
                     escaped.append("\\f");
                     break;
-
                 case '\n':
                     escaped.append("\\n");
                     break;
-
                 case '\r':
                     escaped.append("\\r");
                     break;
-
                 case '\t':
                     escaped.append("\\t");
                     break;
-
                 default:
                     if (c < 0x20) {
                         escaped.append(String.format("\\u%04x", (int) c));

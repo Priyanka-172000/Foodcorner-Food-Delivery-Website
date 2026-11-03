@@ -4,10 +4,9 @@ package com.tap.controller;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
 
 import com.tap.DaoImpl.OrderDaoImpl;
+import com.tap.model.Cart;
 import com.tap.model.Order;
 import com.tap.model.User;
 import com.tap.util.PayUConfig;
@@ -25,24 +24,15 @@ public class PayUResponseServlet extends HttpServlet {
 
     private static final long serialVersionUID = 1L;
 
-    private OrderDaoImpl orderDao;
+    private final OrderDaoImpl orderDao = new OrderDaoImpl();
 
     @Override
-    public void init() throws ServletException {
-        orderDao = new OrderDaoImpl();
-    }
-
-    @Override
-    protected void doPost(
-            HttpServletRequest req,
-            HttpServletResponse resp)
+    protected void doPost(HttpServletRequest req, HttpServletResponse resp)
             throws ServletException, IOException {
-
-        req.setCharacterEncoding("UTF-8");
 
         String key = req.getParameter("key");
         String txnid = req.getParameter("txnid");
-        String amountValue = req.getParameter("amount");
+        String amount = req.getParameter("amount");
         String productinfo = req.getParameter("productinfo");
         String firstname = req.getParameter("firstname");
         String email = req.getParameter("email");
@@ -57,47 +47,35 @@ public class PayUResponseServlet extends HttpServlet {
 
         String additionalCharges = req.getParameter("additionalCharges");
 
-        if (additionalCharges == null) {
+        if (isBlank(additionalCharges)) {
             additionalCharges = req.getParameter("additional_charges");
         }
 
-        if (isBlank(key) || isBlank(txnid) || isBlank(amountValue)
+        if (isBlank(key) || isBlank(txnid) || isBlank(amount)
                 || isBlank(productinfo) || isBlank(firstname)
                 || isBlank(email) || isBlank(status)
                 || isBlank(receivedHash) || isBlank(udf1)) {
-            resp.sendError(
-                    HttpServletResponse.SC_BAD_REQUEST,
-                    "Incomplete payment response."
-            );
+
+            resp.sendError(HttpServletResponse.SC_BAD_REQUEST,
+                    "Invalid payment response.");
             return;
         }
 
-        String configuredKey;
-        String salt;
+        String configuredKey = PayUConfig.getKey();
+        String salt = PayUConfig.getSalt();
 
-        try {
-            configuredKey = PayUConfig.getKey();
-            salt = PayUConfig.getSalt();
-        } catch (IllegalStateException e) {
-            log("PayU configuration is missing or invalid.", e);
-            resp.sendError(
-                    HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
-                    "Payment verification is unavailable."
-            );
-            return;
-        }
+        if (isBlank(configuredKey) || isBlank(salt)
+                || !configuredKey.equals(key)) {
 
-        if (!constantTimeEquals(configuredKey, key)) {
-            resp.sendError(
-                    HttpServletResponse.SC_BAD_REQUEST,
-                    "Invalid payment response."
-            );
+            resp.sendError(HttpServletResponse.SC_BAD_REQUEST,
+                    "Invalid payment key.");
             return;
         }
 
         String expectedHash;
 
         try {
+
             expectedHash = PayUHashUtil.generateResponseHash(
                     status,
                     udf1,
@@ -108,163 +86,186 @@ public class PayUResponseServlet extends HttpServlet {
                     email,
                     firstname,
                     productinfo,
-                    amountValue,
+                    amount,
                     txnid,
                     key,
                     salt,
                     additionalCharges
             );
-        } catch (IllegalArgumentException e) {
-            resp.sendError(
-                    HttpServletResponse.SC_BAD_REQUEST,
-                    "Invalid payment response."
-            );
+
+        } catch (Exception e) {
+
+            e.printStackTrace();
+
+            resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
+                    "Unable to generate response hash.");
             return;
         }
 
-        if (!PayUHashUtil.verifyResponseHash(expectedHash, receivedHash)) {
-            log("PayU response hash verification failed.");
-            resp.sendError(
-                    HttpServletResponse.SC_BAD_REQUEST,
-                    "Payment verification failed."
-            );
+        if (!PayUHashUtil.verifyResponseHash(
+                expectedHash, receivedHash)) {
+
+            resp.sendError(HttpServletResponse.SC_BAD_REQUEST,
+                    "Payment hash verification failed.");
             return;
         }
 
         int orderId;
 
         try {
+
             orderId = Integer.parseInt(udf1);
+
         } catch (NumberFormatException e) {
-            resp.sendError(
-                    HttpServletResponse.SC_BAD_REQUEST,
-                    "Invalid order reference."
-            );
+
+            resp.sendError(HttpServletResponse.SC_BAD_REQUEST,
+                    "Invalid order ID.");
             return;
         }
 
         Order order = orderDao.getOrder(orderId);
 
-        if (order == null
-                || order.getPayuTxnId() == null
-                || !constantTimeEquals(order.getPayuTxnId(), txnid)) {
-            resp.sendError(
-                    HttpServletResponse.SC_BAD_REQUEST,
-                    "Order verification failed."
-            );
+        if (order == null) {
+
+            resp.sendError(HttpServletResponse.SC_NOT_FOUND,
+                    "Order not found.");
             return;
         }
 
-        BigDecimal responseAmount;
-        BigDecimal orderAmount;
+        if (!txnid.equals(order.getPayuTxnId())) {
 
-        try {
-            responseAmount = new BigDecimal(amountValue)
-                    .setScale(2, RoundingMode.UNNECESSARY);
-
-            orderAmount = BigDecimal.valueOf(order.getTotalAmount())
-                    .setScale(2, RoundingMode.HALF_UP);
-        } catch (NumberFormatException | ArithmeticException e) {
-            resp.sendError(
-                    HttpServletResponse.SC_BAD_REQUEST,
-                    "Invalid payment amount."
-            );
+            resp.sendError(HttpServletResponse.SC_BAD_REQUEST,
+                    "Transaction ID does not match.");
             return;
         }
 
-        if (responseAmount.compareTo(orderAmount) != 0) {
-            log("PayU amount mismatch for order " + orderId);
-            resp.sendError(
-                    HttpServletResponse.SC_BAD_REQUEST,
-                    "Payment amount verification failed."
-            );
+        if (!"PAYU".equalsIgnoreCase(order.getPaymentMode())) {
+
+            resp.sendError(HttpServletResponse.SC_BAD_REQUEST,
+                    "Invalid payment mode.");
             return;
         }
 
-        HttpSession session = req.getSession(false);
+        if (!isAmountMatching(amount, order.getTotalAmount())) {
 
-        if ("SUCCESS".equalsIgnoreCase(order.getPaymentStatus())) {
-            if (session != null) {
-                User user = (User) session.getAttribute("user");
-
-                if (user != null && user.getUserId() == order.getUserId()) {
-                    session.setAttribute("lastOrderId", orderId);
-                    session.setAttribute("lastOrderTotal", order.getTotalAmount());
-                    session.setAttribute("lastPaymentMode", "PAYU");
-                    session.setAttribute(
-                            "lastDeliveryAddress",
-                            order.getDeliveryAddress()
-                    );
-                    session.removeAttribute("cart");
-                }
-            }
-
-            resp.sendRedirect(req.getContextPath() + "/orderSuccess.jsp");
+            resp.sendError(HttpServletResponse.SC_BAD_REQUEST,
+                    "Payment amount does not match the order.");
             return;
         }
 
         if ("success".equalsIgnoreCase(status)) {
-            order.setPaymentStatus("SUCCESS");
-            orderDao.updateOrder(order);
 
-            if (session != null) {
-                User user = (User) session.getAttribute("user");
+            if (!"SUCCESS".equalsIgnoreCase(order.getPaymentStatus())) {
 
-                if (user != null && user.getUserId() == order.getUserId()) {
-                    session.setAttribute("lastOrderId", orderId);
-                    session.setAttribute("lastOrderTotal", order.getTotalAmount());
-                    session.setAttribute("lastPaymentMode", "PAYU");
-                    session.setAttribute(
-                            "lastDeliveryAddress",
-                            order.getDeliveryAddress()
-                    );
-                    session.removeAttribute("cart");
+                if (!"PENDING".equalsIgnoreCase(order.getPaymentStatus())) {
+
+                    resp.sendError(HttpServletResponse.SC_BAD_REQUEST,
+                            "Order payment is not pending.");
+                    return;
                 }
+
+                order.setPaymentStatus("SUCCESS");
+
+                orderDao.updateOrder(order);
+
+                Order updatedOrder = orderDao.getOrder(orderId);
+
+                if (updatedOrder == null
+                        || !"SUCCESS".equalsIgnoreCase(
+                                updatedOrder.getPaymentStatus())) {
+
+                    resp.sendError(
+                            HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
+                            "Unable to update payment status.");
+                    return;
+                }
+
+                order = updatedOrder;
             }
 
-            resp.sendRedirect(req.getContextPath() + "/orderSuccess.jsp");
+            showOrderSuccess(req, resp, order);
             return;
         }
 
         if ("failure".equalsIgnoreCase(status)) {
-            order.setPaymentStatus("FAILED");
-            orderDao.updateOrder(order);
+
+            if (!"SUCCESS".equalsIgnoreCase(order.getPaymentStatus())) {
+
+                order.setPaymentStatus("FAILED");
+                orderDao.updateOrder(order);
+            }
 
             resp.sendRedirect(
-                    req.getContextPath() + "/checkout?payment=failed"
-            );
+                    req.getContextPath() + "/checkout?payment=failed");
             return;
         }
 
-        resp.sendRedirect(
-                req.getContextPath() + "/checkout?payment=verification_failed"
-        );
+        resp.sendError(HttpServletResponse.SC_BAD_REQUEST,
+                "Unknown payment status.");
     }
 
-    @Override
-    protected void doGet(
+    private void showOrderSuccess(
             HttpServletRequest req,
-            HttpServletResponse resp)
-            throws ServletException, IOException {
+            HttpServletResponse resp,
+            Order order
+    ) throws IOException {
 
-        resp.sendError(
-                HttpServletResponse.SC_METHOD_NOT_ALLOWED,
-                "Payment response must use POST."
-        );
-    }
+        HttpSession session = req.getSession(true);
 
-    private boolean constantTimeEquals(String first, String second) {
-        if (first == null || second == null) {
-            return false;
+        User user = (User) session.getAttribute("user");
+
+        if (user != null && user.getUserId() != order.getUserId()) {
+
+            resp.sendError(HttpServletResponse.SC_FORBIDDEN,
+                    "You are not authorized to view this order.");
+            return;
         }
 
-        return MessageDigest.isEqual(
-                first.getBytes(StandardCharsets.UTF_8),
-                second.getBytes(StandardCharsets.UTF_8)
-        );
+        session.setAttribute("lastOrderId", order.getOrderId());
+        session.setAttribute("lastOrderTotal", order.getTotalAmount());
+        session.setAttribute("lastPaymentMode", "Online Payment");
+        session.setAttribute("lastDeliveryAddress",
+                order.getDeliveryAddress());
+
+        Cart cart = (Cart) session.getAttribute("cart");
+
+        if (cart != null) {
+            cart.clear();
+            session.setAttribute("cart", cart);
+        }
+
+        resp.sendRedirect(
+                req.getContextPath() + "/orderSuccess.jsp");
+    }
+
+    private boolean isAmountMatching(
+            String responseAmount, double orderAmount) {
+
+        try {
+
+            BigDecimal response = new BigDecimal(responseAmount)
+                    .setScale(2, RoundingMode.HALF_UP);
+
+            BigDecimal expected = BigDecimal.valueOf(orderAmount)
+                    .setScale(2, RoundingMode.HALF_UP);
+
+            return response.compareTo(expected) == 0;
+
+        } catch (NumberFormatException e) {
+
+            return false;
+        }
     }
 
     private boolean isBlank(String value) {
         return value == null || value.trim().isEmpty();
+    }
+
+    @Override
+    protected void doGet(HttpServletRequest req, HttpServletResponse resp)
+            throws ServletException, IOException {
+
+        resp.sendError(HttpServletResponse.SC_METHOD_NOT_ALLOWED,
+                "GET method is not supported.");
     }
 }
